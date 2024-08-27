@@ -1,0 +1,12 @@
+# Environment
+.venv/
+
+# Type checker
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# pyenv environment
+.python-version

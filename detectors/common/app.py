@@ -1,0 +1,149 @@
+# Standard
+import os
+import ssl
+import sys
+
+import uvicorn
+import yaml
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+sys.path.insert(0, os.path.abspath(".."))
+
+import logging
+
+from fastapi import FastAPI, status
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger(__name__)
+
+
+app = FastAPI(
+    title="WxPE Detectors API",
+    version="0.0.1",
+    contact={
+        "name": "Alan Braz",
+        "url": "http://alanbraz.com.br/en/",
+    },
+    dependencies=[],
+)
+
+
+class DetectorBaseAPI(FastAPI):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.add_exception_handler(
+            RequestValidationError, self.validation_exception_handler
+        )
+        self.add_exception_handler(StarletteHTTPException, self.http_exception_handler)
+        self.add_api_route("/health", health, description="Check if server is alive")
+
+    async def validation_exception_handler(self, request, exc):
+        errors = exc.errors()
+        if len(errors) > 0 and errors[0]["type"] == "missing":
+            return await self.parse_missing_required_parameter_response(request, exc)
+        elif len(errors) > 0 and errors[0]["type"].endswith("type"):
+            return await self.parse_invalid_type_parameter_response(request, exc)
+        else:
+            # return await request_validation_exception_handler(request, exc)
+            return await self.parse_generic_validation_response(request, exc)
+
+    async def parse_missing_required_parameter_response(self, request, exc):
+        errors = [
+            error["loc"][-1] for error in exc.errors() if error["type"] == "missing"
+        ]
+        message = f"Missing required parameters: {errors}"
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "message": message,
+            },
+        )
+
+    async def parse_invalid_type_parameter_response(self, request, exc):
+        errors = [
+            error["loc"][-1] for error in exc.errors() if error["type"].endswith("type")
+        ]
+        message = f"Parameters with invalid type: {errors}"
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "message": message,
+            },
+        )
+
+    async def parse_generic_validation_response(self, request, exc):
+        errors = [error["loc"][-1] for error in exc.errors()]
+        message = f"Invalid parameters: {errors}"
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content={
+                "code": status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "message": message,
+            },
+        )
+
+    async def http_exception_handler(self, request, exc):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"code": exc.status_code, "message": exc.detail},
+        )
+
+
+async def health():
+    return "ok"
+
+
+def main(app):
+    # "loop": "uvloop", (thats default in our setting)
+    # "backlog": 10000
+    # "timeout_keep_alive": 30
+    # limit_concurrency: Maximum number of concurrent connections or tasks to allow, before issuing HTTP 503 responses.
+    # timeout_keep_alive: Close Keep-Alive connections if no new data is received within this timeout.
+    config = {
+        "server": {
+            "host": "0.0.0.0",
+            "port": "8000",
+            "workers": 1,
+            "limit_concurrency": 1000,
+            "timeout_keep_alive": 30,
+        }
+    }
+
+    try:
+        with open(os.getenv("CONFIG_FILE_PATH", "config.yaml")) as stream:
+            config = yaml.safe_load(stream)
+    except FileNotFoundError as fnf:
+        print(fnf)
+    except yaml.YAMLError as exc:
+        print(exc)
+
+    for e in os.environ:
+        if e.startswith("SERVER_"):
+            print(e)
+            name = e[len("SERVER_") :].lower()
+            config["server"][name] = os.getenv(e)
+
+    if os.getenv("HOST"):
+        config["server"]["host"] = os.getenv("HOST")
+    config["server"]["port"] = int(
+        os.getenv("PORT") if os.getenv("PORT") else config["server"]["port"]
+    )
+    config["server"]["workers"] = (
+        int(config["server"]["workers"])
+        if str(config["server"]["workers"])
+        else config["server"]["workers"]
+    )
+
+    if "ssl_ca_certs" in config["server"]:
+        config["server"]["ssl_cert_reqs"] = ssl.CERT_REQUIRED
+
+    logger.info("server configuration: {0}".format(config["server"]))
+
+    try:
+        uvicorn.run(app, **config["server"])
+    except Exception as e:
+        print(e)
+        sys.exit(1)
