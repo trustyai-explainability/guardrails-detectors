@@ -35,16 +35,19 @@ class Detector:
             try:
                 logger.info(f"Validating text: {text}")
                 validation_result = self.guard.validate(text)
+                status = "success"
                 logger.info(f"Validation successful for text: {text}")
             except Exception as e:
                 logger.error(f"Validation failed for text: {text} with error: {e}")
                 validation_result = str(e)
+                status = "failed"
 
             content_analyses.append(
                 ContentAnalysisResponse(
+                    detection_type="guardrails_ai",
+                    status=status,
                     start=0,
                     end=len(text),
-                    detection_type="guardrails_ai",
                     text=text,
                     validation_result=validation_result,
                     evidences=[],

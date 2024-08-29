@@ -39,9 +39,12 @@ class ContentAnalysisHttpRequest(BaseModel):
 
 class ContentAnalysisResponse(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    detection_type: str = Field(example="detection_type")
+    status: str = Field(
+        example="success", description="Indicates whether validation passed or failed"
+    )
     start: int = Field(example=14)
     end: int = Field(example=26)
-    detection_type: str = Field(example="detection_type")
     text: str = Field(
         example="My email address is xx@domain.com and zzz@hotdomain.co.uk"
     )
