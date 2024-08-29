@@ -45,7 +45,7 @@ class ContentAnalysisResponse(BaseModel):
     text: str = Field(
         example="My email address is xx@domain.com and zzz@hotdomain.co.uk"
     )
-    validation_result: Union[Exception, ValidationOutcome]
+    validation_result: Union[str, ValidationOutcome]
     evidences: Optional[List[EvidenceObj]] = Field(
         description="Optional field providing evidences for the provided detection",
         default=[],

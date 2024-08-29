@@ -38,7 +38,7 @@ class Detector:
                 logger.info(f"Validation successful for text: {text}")
             except Exception as e:
                 logger.error(f"Validation failed for text: {text} with error: {e}")
-                validation_result = e
+                validation_result = str(e)
 
             content_analyses.append(
                 ContentAnalysisResponse(
