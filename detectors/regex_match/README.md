@@ -63,3 +63,51 @@ curl -X POST "http://127.0.0.1:8000/api/v1/text/contents" \
     "regex_pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
 }'
 ```
+
+## Running app on OpenShift
+
+1. Create a new Openshift project, i.e.
+
+```bash
+oc project deploy-regex
+```
+
+2. If using KServe on a ROSA cluster, apply the following service account configuration yaml:
+
+```bash
+oc apply -f regex_match/deploy/service_account.yaml
+```
+
+3. Create a new deployment configuration:
+
+```bash
+oc apply -f regex_match/deploy/deploy.yaml
+```
+
+4. Confirm pods are running:
+
+```bash
+oc get pods
+```
+
+5. Generate an authentication token for the service account:
+
+```bash
+SA_TOKEN=$(oc create token user-one) 
+```
+
+6. Get the service URL:
+
+```bash
+REGEX_URL="$(oc get inferenceservice regex-detector -o jsonpath='{.status.url}')/api/v1/text/contents"
+```
+
+7. Once the pods are running, you can send a request to the service:
+
+```bash
+curl -X POST "$REGEX_URL" \
+-H "Content-Type: application/json" \
+-H "detector-id: has_regex_match" \
+-H "Authorization: Bearer $SA_TOKEN" \
+-d @regex_match/data/sample.json
+```
