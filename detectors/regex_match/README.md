@@ -72,7 +72,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/text/contents" \
 oc project deploy-regex
 ```
 
-2. If using KServe on a ROSA cluster, apply the following service account configuration yaml:
+2. If using KServe on a ROSA cluster, navigate to the `detectors` directory and apply the service account configuration:
 
 ```bash
 oc apply -f regex_match/deploy/service_account.yaml
@@ -81,7 +81,7 @@ oc apply -f regex_match/deploy/service_account.yaml
 3. Create a new deployment configuration:
 
 ```bash
-oc apply -f regex_match/deploy/deploy.yaml
+oc apply -f regex_match/deploy/inference_service.yaml
 ```
 
 4. Confirm pods are running:
