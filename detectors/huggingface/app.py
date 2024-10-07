@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Header
-
+from prometheus_fastapi_instrumentator import Instrumentator
 sys.path.insert(0, os.path.abspath(".."))
 
 from common.app import DetectorBaseAPI as FastAPI
@@ -27,6 +27,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, dependencies=[])
+Instrumentator().instrument(app).expose(app)
+
 
 @app.post(
     "/api/v1/text/contents",

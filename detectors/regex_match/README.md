@@ -31,11 +31,7 @@ uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 ```bash
 curl -X POST "http://127.0.0.1:8000/api/v1/text/contents" \
 -H "Content-Type: application/json" \
--H "detector-id: has_regex_match" \
--d '{
     "contents": ["My email address is xx@domain.com and zzz@hotdomain.co.uk"],
-    "regex_pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-}'
 ```
 
 ## Running app inside a container
