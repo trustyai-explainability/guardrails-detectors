@@ -1,15 +1,16 @@
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
-  name: guardrails-detector-ibm-hap
+  name: guardrails-detector-ibm-guardian
   labels:
     opendatahub.io/dashboard: 'true'
   annotations:
-    openshift.io/display-name: guardrails-detector-ibm-hap
+    openshift.io/display-name: guardrails-detector-ibm-guardian
     security.opendatahub.io/enable-auth: 'true'
     serving.knative.openshift.io/enablePassthrough: 'true'
     sidecar.istio.io/inject: 'true'
     sidecar.istio.io/rewriteAppHTTPProbers: 'true'
+    serving.kserve.io/deploymentMode: RawDeployment
 spec:
   predictor:
     maxReplicas: 1
@@ -18,7 +19,7 @@ spec:
       modelFormat:
         name: guardrails-detector-huggingface
       name: ''
-      runtime: guardrails-detector-runtime
+      runtime: guardrails-detector-runtime-guardian
       storage:
-        key: aws-connection-minio-data-connection
-        path: granite-guardian-hap-38m
+        key: aws-connection-minio-data-connection-guardrails-guardian
+        path: granite-guardian-3.0-2b

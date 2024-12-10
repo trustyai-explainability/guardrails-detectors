@@ -1,7 +1,7 @@
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
-  name: guardrails-detector-runtime
+  name: guardrails-detector-runtime-guardian
   annotations:
     openshift.io/display-name: Guardrails Detector ServingRuntime for KServe
     opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
@@ -17,13 +17,13 @@ spec:
       name: guardrails-detector-huggingface
   containers:
     - name: kserve-container
-      image: quay.io/rgeada/guardrails-detector-huggingface
+      image: quay.io/rh-ee-mmisiura/guardrails-detector-huggingface:c7598db
       command:
         - uvicorn
         - app:app
       args:
         - "--workers"
-        - "4"
+        - "1"
         - "--host"
         - "0.0.0.0"
         - "--port"
@@ -38,3 +38,10 @@ spec:
       ports:
         - containerPort: 8000
           protocol: TCP
+      resources:
+        requests:
+          memory: "18Gi"  # pre-allocate 18Gi of memory -- might be needed for larger models
+          cpu: "1"       # reserve 1 CPU core
+        limits:
+          memory: "20Gi"  # limit to 20Gi of memory
+          cpu: "2"       # limit to 2 CPU cores
