@@ -17,7 +17,7 @@ spec:
       name: guardrails-detector-huggingface
   containers:
     - name: kserve-container
-      image: quay.io/rh-ee-mmisiura/guardrails-detector-huggingface:c7598db
+      image: quay.io/rh-ee-mmisiura/guardrails-detector-huggingface:3d51741
       command:
         - uvicorn
         - app:app
