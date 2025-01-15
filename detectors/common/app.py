@@ -14,9 +14,11 @@ import logging
 
 from fastapi import FastAPI, status
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logging.getLogger(__name__)
-
+uvicorn_error_logger = logging.getLogger("uvicorn.error")
+uvicorn_error_logger.name = "uvicorn"
 
 app = FastAPI(
     title="WxPE Detectors API",
@@ -37,6 +39,7 @@ class DetectorBaseAPI(FastAPI):
         )
         self.add_exception_handler(StarletteHTTPException, self.http_exception_handler)
         self.add_api_route("/health", health, description="Check if server is alive")
+
 
     async def validation_exception_handler(self, request, exc):
         errors = exc.errors()
@@ -95,7 +98,6 @@ class DetectorBaseAPI(FastAPI):
 async def health():
     return "ok"
 
-
 def main(app):
     # "loop": "uvloop", (thats default in our setting)
     # "backlog": 10000
@@ -111,6 +113,8 @@ def main(app):
             "timeout_keep_alive": 30,
         }
     }
+
+    logger.info("config:", os.getenv("CONFIG_FILE_PATH"))
 
     try:
         with open(os.getenv("CONFIG_FILE_PATH", "config.yaml")) as stream:

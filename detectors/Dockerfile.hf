@@ -1,0 +1,31 @@
+FROM registry.access.redhat.com/ubi9/ubi-minimal as base
+RUN microdnf update -y && \
+    microdnf install -y --nodocs \
+        python-pip python-devel && \
+    pip install --upgrade --no-cache-dir pip wheel && \
+    microdnf clean all
+RUN pip install --no-cache-dir torch
+
+# FROM icr.io/fm-stack/ubi9-minimal-py39-torch as builder
+FROM base as builder
+
+COPY ./common/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./huggingface/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM builder
+
+WORKDIR /app
+ARG CACHEBUST=1
+RUN echo "$CACHEBUST"
+COPY ./common /common
+COPY ./huggingface/app.py /app
+COPY ./huggingface/detector.py /app
+COPY ./huggingface/scheme.py /app
+
+EXPOSE 8000
+CMD ["uvicorn", "app:app" "--workers", "4", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
+
+# gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000

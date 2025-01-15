@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-guardrails-guardian
+spec:
+  ports:
+    - name: minio-client-port
+      port: 9000
+      protocol: TCP
+      targetPort: 9000
+  selector:
+    app: minio-guardrails-guardian
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: guardrails-models-claim-guardian
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  # storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guardrails-container-deployment-guardian # <--- change this
+labels:
+    app: minio-guardrails-guardian # <--- change this to match label on the pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio-guardrails-guardian  # <--- change this to match label on the pod
+  template: # => from here down copy and paste the pods metadata: and spec: sections
+    metadata:
+      labels:
+        app: minio-guardrails-guardian
+        maistra.io/expose-route: 'true'
+      name: minio-guardrails-guardian
+    spec:
+      volumes:
+      - name: model-volume
+        persistentVolumeClaim:
+          claimName: guardrails-models-claim-guardian
+      initContainers:
+        - name: download-model
+          image: quay.io/rgeada/llm_downloader:latest
+          securityContext:
+            fsGroup: 1001
+          command:
+            - bash
+            - -c
+            - |
+              # model="ibm-granite/granite-guardian-hap-38m"
+              # model="h2oai/deberta_finetuned_pii"
+              model="ibm-granite/granite-guardian-3.0-2b"
+              # model="microsoft/Phi-3-mini-4k-instruct"
+              echo "starting download"
+              /tmp/venv/bin/huggingface-cli download $model --local-dir /mnt/models/huggingface/$(basename $model)
+              echo "Done!"
+          resources:
+            limits:
+              memory: "2Gi"
+              cpu: "2"
+          volumeMounts:
+            - mountPath: "/mnt/models/"
+              name: model-volume
+      containers:
+        - args:
+            - server
+            - /models
+          env:
+            - name: MINIO_ACCESS_KEY
+              value:  THEACCESSKEY
+            - name: MINIO_SECRET_KEY
+              value: THESECRETKEY
+          image: quay.io/trustyai/modelmesh-minio-examples:latest
+          name: minio
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - mountPath: "/models/"
+              name: model-volume
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-connection-minio-data-connection-guardrails-guardian
+  labels:
+    opendatahub.io/dashboard: 'true'
+    opendatahub.io/managed: 'true'
+  annotations:
+    opendatahub.io/connection-type: s3
+    openshift.io/display-name: Minio Data Connection
+data:
+  AWS_ACCESS_KEY_ID: VEhFQUNDRVNTS0VZ
+  AWS_DEFAULT_REGION: dXMtc291dGg=
+  AWS_S3_BUCKET: aHVnZ2luZ2ZhY2U=
+  AWS_S3_ENDPOINT: aHR0cDovL21pbmlvLWd1YXJkcmFpbHMtZ3VhcmRpYW46OTAwMA==
+  AWS_SECRET_ACCESS_KEY: VEhFU0VDUkVUS0VZ
+type: Opaque
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: user-one
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: user-one-view
+subjects:
+  - kind: ServiceAccount
+    name: user-one
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
