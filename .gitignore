@@ -4,6 +4,9 @@
 # Type checker
 .DS_Store
 
+# IDEA
+**/.idea/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -13,3 +16,7 @@ __pycache__/
 
 # secrets
 .env
+
+# artifacts
+**/.pkl
+**/model_artifacts/*
