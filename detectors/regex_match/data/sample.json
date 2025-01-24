@@ -1,4 +1,0 @@
-{
-    "contents": ["My email address is xx@domain.com and zzz@hotdomain.co.uk"],
-    "regex_pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
-}
