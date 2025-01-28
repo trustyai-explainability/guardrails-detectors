@@ -13,3 +13,18 @@ __pycache__/
 
 # secrets
 .env
+
+# pytest cache
+.pytest_cache/
+
+# .tox
+.tox/
+
+# pycache
+__pycache__/
+
+# coverage
+.coverage
+
+# .vscode
+.vscode/
