@@ -1,4 +1,4 @@
-# global imports
+# third-party imports
 import os
 import pytest
 
@@ -12,7 +12,9 @@ def setup_environment():
     """
     Setup the required environment variable for the model directory.
     """
-    os.environ["MODEL_DIR"] = os.path.join(os.path.dirname(__file__), "dummy_models")
+    current_dir = os.path.dirname(__file__)
+    parent_dir = os.path.dirname(os.path.dirname(current_dir))
+    os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models")
 
 
 # tests to check the model initialization
