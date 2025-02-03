@@ -49,10 +49,15 @@ jobs:
 
       - name: Build and push
         run: |
-          # Get version from tag
-          VERSION=${GITHUB_REF#refs/tags/v}
+          # Get version based on ref type
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            # For tags like '0.1.0' or 'v0.1.0'
+            VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
+          else
+            # For branches, use branch name
+            VERSION="test-$(echo ${GITHUB_REF#refs/heads/} | tr '/' '-')"
+          fi
           
-          # Define tags
           IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
           IMAGE_TAG_VERSION="${IMAGE_BASE}:${VERSION}"
           IMAGE_TAG_LATEST="${IMAGE_BASE}:latest"
