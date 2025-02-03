@@ -36,10 +36,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Podman
-        uses: gacts/install-podman@v1
-        with:
-          podman-version: '5.2.5'
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman=5.2.5*
+          podman version
 
       - name: Login to Container Registry
         uses: docker/login-action@v3
