@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'dev'
+      - 'gh_workflows'
 
 env:
   REGISTRY: quay.io
