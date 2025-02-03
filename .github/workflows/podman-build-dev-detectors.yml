@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Podman
-        uses: podman/action-setup@v0.8.0
+        uses: gacts/install-podman@v1
         with:
           podman-version: '5.2.5'
 
