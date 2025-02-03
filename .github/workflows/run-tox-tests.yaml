@@ -25,10 +25,3 @@ jobs:
           
       - name: Run tox
         run: tox
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: .tox/test-results/
