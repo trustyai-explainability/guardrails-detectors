@@ -8,7 +8,8 @@ name: Release Build
 on:
   push:
     tags:
-      - '*.*.*'
+      - '[0-9]+.[0-9]+.[0-9]+'      # matches: 0.1.0
+      - 'v[0-9]+.[0-9]+.[0-9]+'     # matches: v0.1.0
     branches: 
       - 'gh_workflows'
 env:
@@ -49,11 +50,14 @@ jobs:
 
       - name: Build and push
         run: |
-          # Get version from tag
-          if [[ $GITHUB_REF != refs/tags/* ]]; then
-            echo "Error: This workflow only runs on tags"
-            exit 1
-          fi
+          echo "GITHUB_REF: ${GITHUB_REF}"
+          
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/}
+          # Remove v prefix if present
+          VERSION=${VERSION#v}
+          
+          echo "Using version: ${VERSION}"
           
           IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
           IMAGE_TAG="${IMAGE_BASE}:${VERSION}"
@@ -65,5 +69,5 @@ jobs:
             -t ${IMAGE_TAG} \
             ${{ matrix.detector.context }}
           
-          echo "Pushing tag"
-          podman push ${IMAGE_TAG}
+          echo "Pushing ${IMAGE_TAG}"
+          podman push ${IMAGE_TAG
