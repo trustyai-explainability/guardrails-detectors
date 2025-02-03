@@ -82,7 +82,6 @@ jobs:
           
           # Define tags
           IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
-          IMAGE_TAG_DEV="${IMAGE_BASE}:dev"
           IMAGE_TAG_SHA="${IMAGE_BASE}:dev-${SHA}"
           
           echo "Building ${IMAGE_TAG_DEV} and ${IMAGE_TAG_SHA}"
@@ -94,5 +93,4 @@ jobs:
             ${{ matrix.detector.context }}
           
           echo "Pushing tags"
-          podman push ${IMAGE_TAG_DEV}
           podman push ${IMAGE_TAG_SHA}
