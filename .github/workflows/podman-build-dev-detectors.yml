@@ -9,7 +9,7 @@ on:
 env:
   REGISTRY: quay.io
   ORG_PREFIX: rh-ee-mmisiura
-  IMAGE_PREFIX: ${{ github.repository_name }}
+  IMAGE_PREFIX: ${{ github.event.repository.name }}
 
 jobs:
   build:
