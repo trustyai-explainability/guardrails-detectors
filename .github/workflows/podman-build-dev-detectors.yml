@@ -1,0 +1,62 @@
+name: Development Build
+
+on:
+  push:
+    branches:
+      - 'dev'
+
+env:
+  REGISTRY: quay.io
+  ORG_PREFIX: rh-ee-mmisiura
+  IMAGE_PREFIX: ${{ env.ORG_PREFIX }}/${{ github.repository_name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    strategy:
+      matrix:
+        detector:
+          # active detector configuration
+          - name: huggingface
+            dockerfile: Dockerfile.hf
+            context: detectors
+            tag_prefix: hf-detector
+          # template for future detectors -- uncomment and modify as needed
+          # - name: custom
+          #   dockerfile: Dockerfile.custom
+          #   context: detectors
+          #   tag_prefix: custom-detector
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Podman
+        uses: podman/action-setup@v0.8.0
+        with:
+          podman-version: '5.2.5'
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        run: |
+          IMAGE_TAG="${REGISTRY}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}:dev"
+          
+          echo "Building ${IMAGE_TAG}"
+          podman build \
+            --platform linux/amd64 \
+            -f ${{ matrix.detector.context }}/${{ matrix.detector.dockerfile }} \
+            -t ${IMAGE_TAG} \
+            ${{ matrix.detector.context }}
+          
+          echo "Pushing ${IMAGE_TAG}"
+          podman push ${IMAGE_TAG}
