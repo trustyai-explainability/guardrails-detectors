@@ -1,0 +1,30 @@
+name: Code Quality
+
+on:
+  pull_request:
+    branches: [ main, dev , gh_workflows ]
+  push:
+    branches: [ main, dev , gh_workflows ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black flake8 mypy isort
+          
+      - name: Run linters
+        run: |
+          black --check .
+          flake8 .
+          mypy .
+          isort --check-only .
