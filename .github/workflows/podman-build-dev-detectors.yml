@@ -88,7 +88,6 @@ jobs:
           podman build \
             --platform linux/amd64 \
             -f ${{ matrix.detector.context }}/${{ matrix.detector.dockerfile }} \
-            -t ${IMAGE_TAG_DEV} \
             -t ${IMAGE_TAG_SHA} \
             ${{ matrix.detector.context }}
           
