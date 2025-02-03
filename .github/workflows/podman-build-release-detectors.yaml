@@ -49,13 +49,10 @@ jobs:
 
       - name: Build and push
         run: |
-          # Get version based on ref type
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            # For tags like '0.1.0' or 'v0.1.0'
-            VERSION=$(echo ${GITHUB_REF#refs/tags/} | sed 's/^v//')
-          else
-            # For branches, use branch name
-            VERSION="test-$(echo ${GITHUB_REF#refs/heads/} | tr '/' '-')"
+          # Get version from tag
+          if [[ $GITHUB_REF != refs/tags/* ]]; then
+            echo "Error: This workflow only runs on tags"
+            exit 1
           fi
           
           IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
