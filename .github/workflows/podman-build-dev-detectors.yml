@@ -50,14 +50,33 @@ jobs:
 
       - name: Build and push
         run: |
-          IMAGE_TAG="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}:dev"
-        
-          echo "Building ${IMAGE_TAG}"
+          # IMAGE_TAG="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}:dev"
+
+          # echo "Building ${IMAGE_TAG}"
+          # podman build \
+          #   --platform linux/amd64 \
+          #   -f ${{ matrix.detector.context }}/${{ matrix.detector.dockerfile }} \
+          #   -t ${IMAGE_TAG} \
+          #   ${{ matrix.detector.context }}
+          
+          # echo "Pushing ${IMAGE_TAG}"
+          # podman push ${IMAGE_TAG}
+          # Get short SHA
+          SHA=$(git rev-parse --short HEAD)
+          
+          # Define tags
+          IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
+          IMAGE_TAG_DEV="${IMAGE_BASE}:dev"
+          IMAGE_TAG_SHA="${IMAGE_BASE}:dev-${SHA}"
+          
+          echo "Building ${IMAGE_TAG_DEV} and ${IMAGE_TAG_SHA}"
           podman build \
             --platform linux/amd64 \
             -f ${{ matrix.detector.context }}/${{ matrix.detector.dockerfile }} \
-            -t ${IMAGE_TAG} \
+            -t ${IMAGE_TAG_DEV} \
+            -t ${IMAGE_TAG_SHA} \
             ${{ matrix.detector.context }}
           
-          echo "Pushing ${IMAGE_TAG}"
-          podman push ${IMAGE_TAG}
+          echo "Pushing tags"
+          podman push ${IMAGE_TAG_DEV}
+          podman push ${IMAGE_TAG_SHA}
