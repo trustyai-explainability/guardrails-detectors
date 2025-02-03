@@ -59,17 +59,14 @@ jobs:
           fi
           
           IMAGE_BASE="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}"
-          IMAGE_TAG_VERSION="${IMAGE_BASE}:${VERSION}"
-          IMAGE_TAG_LATEST="${IMAGE_BASE}:latest"
+          IMAGE_TAG="${IMAGE_BASE}:${VERSION}"
           
-          echo "Building ${IMAGE_TAG_VERSION} and ${IMAGE_TAG_LATEST}"
+          echo "Building ${IMAGE_TAG}"
           podman build \
             --platform linux/amd64 \
             -f ${{ matrix.detector.context }}/${{ matrix.detector.dockerfile }} \
-            -t ${IMAGE_TAG_VERSION} \
-            -t ${IMAGE_TAG_LATEST} \
+            -t ${IMAGE_TAG} \
             ${{ matrix.detector.context }}
           
-          echo "Pushing tags"
-          podman push ${IMAGE_TAG_VERSION}
-          podman push ${IMAGE_TAG_LATEST}
+          echo "Pushing tag"
+          podman push ${IMAGE_TAG}
