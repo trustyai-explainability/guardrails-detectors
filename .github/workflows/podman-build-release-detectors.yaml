@@ -8,7 +8,7 @@ name: Release Build
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*.*.*'
     branches: 
       - 'gh_workflows'
 env:
