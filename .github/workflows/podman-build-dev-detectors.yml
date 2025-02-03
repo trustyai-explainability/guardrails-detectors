@@ -50,8 +50,8 @@ jobs:
 
       - name: Build and push
         run: |
-          IMAGE_TAG="${REGISTRY}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}:dev"
-          
+          IMAGE_TAG="${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${{ matrix.detector.tag_prefix }}:dev"
+        
           echo "Building ${IMAGE_TAG}"
           podman build \
             --platform linux/amd64 \
