@@ -1,5 +1,21 @@
 name: Development Build
 
+# Workflow builds and pushes detector images to Quay.io
+# Image naming convention:
+#   ${REGISTRY}/${ORG_PREFIX}/${IMAGE_PREFIX}/${TAG_PREFIX}:${TAG}
+# Example: quay.io/rh-ee-mmisiura/guardrails-detectors/hf-detector:dev-abc123
+#
+# To add a new detector:
+# 1. Add new entry to matrix.detector:
+#    - name: your-detector-name
+#      dockerfile: Dockerfile.your-detector
+#      context: detectors
+#      tag_prefix: your-detector-prefix
+# 2. Images will be tagged as:
+#    - :dev (latest development version)
+#    - :dev-{SHA} (specific commit version)
+# 3. Push to 'dev' branch to trigger the workflow
+
 on:
   push:
     branches:
