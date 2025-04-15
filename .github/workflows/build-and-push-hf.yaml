@@ -1,4 +1,4 @@
-name: Build and Push
+name: Build and Push - Huggingface Detector
 on:
   push:
     branches:
@@ -61,7 +61,7 @@ jobs:
         if:  env.BUILD_CONTEXT == 'ci'
         run: |
           echo "TAG=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
-          echo "IMAGE_NAME=quay.io/trustyai/trustyai-service-ci" >> $GITHUB_ENV
+          echo "IMAGE_NAME=quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
       - name: Set main-branch environment
         if:  env.BUILD_CONTEXT == 'main'
         run: |
@@ -74,15 +74,11 @@ jobs:
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
       #
       # Run docker commands
-      - name: Pull prerequisite images
-        run: |
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS base)')
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS builder)')
       - name: Put expiry date on CI-tagged image
         if:  env.BUILD_CONTEXT == 'ci'
         run: echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
       - name: Build image
-        run: cd detectors; docker build -t ${{ env.IMAGE_NAME }}:$TAG Dockerfile.hf
+        run: docker build -t ${{ env.IMAGE_NAME }}:$TAG -f detectors/Dockerfile.hf detectors
       - name: Log in to Quay
         run: docker login -u ${{ secrets.QUAY_ROBOT_USERNAME }} -p ${{ secrets.QUAY_ROBOT_SECRET }} quay.io
       - name: Push to Quay CI repo
@@ -103,11 +99,9 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           edit-mode: replace
           body: |
-            PR image build and manifest generation completed successfully!
+            PR image build completed successfully!
             
-            📦 [PR image](quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
-                        
-            ```
+            📦 [PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
