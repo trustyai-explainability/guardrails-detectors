@@ -78,10 +78,7 @@ jobs:
         if:  env.BUILD_CONTEXT == 'ci'
         run: echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
       - name: Build image
-        run: |
-          cd detectors
-          ls
-          docker build -t ${{ env.IMAGE_NAME }}:$TAG ./Dockerfile.hf
+        run: docker build -t ${{ env.IMAGE_NAME }}:$TAG -f detectors/Dockerfile.hf detectors
       - name: Log in to Quay
         run: docker login -u ${{ secrets.QUAY_ROBOT_USERNAME }} -p ${{ secrets.QUAY_ROBOT_SECRET }} quay.io
       - name: Push to Quay CI repo
