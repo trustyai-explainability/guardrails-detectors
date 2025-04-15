@@ -87,6 +87,7 @@ jobs:
       # Leave comment
       - uses: peter-evans/find-comment@v3
         name: Find Comment
+        if:  env.BUILD_CONTEXT == 'ci'
         id: fc
         with:
           issue-number: ${{ github.event.pull_request.number }}
