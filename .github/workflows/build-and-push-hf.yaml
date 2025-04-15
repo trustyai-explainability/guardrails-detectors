@@ -1,4 +1,4 @@
-name: Build and Push
+name: Build and Push - Huggingface Detector
 on:
   push:
     branches:
@@ -74,15 +74,11 @@ jobs:
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
       #
       # Run docker commands
-      - name: Pull prerequisite images
-        run: |
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS base)')
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS builder)')
       - name: Put expiry date on CI-tagged image
         if:  env.BUILD_CONTEXT == 'ci'
         run: echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
       - name: Build image
-        run: cd detectors; docker build -t ${{ env.IMAGE_NAME }}:$TAG Dockerfile.hf
+        run: docker build -t ${{ env.IMAGE_NAME }}:$TAG detectors/Dockerfile.hf
       - name: Log in to Quay
         run: docker login -u ${{ secrets.QUAY_ROBOT_USERNAME }} -p ${{ secrets.QUAY_ROBOT_SECRET }} quay.io
       - name: Push to Quay CI repo
