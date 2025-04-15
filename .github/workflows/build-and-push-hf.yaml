@@ -61,7 +61,7 @@ jobs:
         if:  env.BUILD_CONTEXT == 'ci'
         run: |
           echo "TAG=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
-          echo "IMAGE_NAME= quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
+          echo "IMAGE_NAME=quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
       - name: Set main-branch environment
         if:  env.BUILD_CONTEXT == 'main'
         run: |
