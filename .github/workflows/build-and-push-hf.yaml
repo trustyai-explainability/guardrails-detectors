@@ -99,11 +99,9 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           edit-mode: replace
           body: |
-            PR image build and manifest generation completed successfully!
+            PR image build completed successfully!
             
-            📦 [PR image](quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
-                        
-            ```
+            📦 [PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
