@@ -81,7 +81,7 @@ jobs:
         run: |
           cd detectors
           ls
-          docker build -t ${{ env.IMAGE_NAME }}:$TAG Dockerfile.hf
+          docker build -t ${{ env.IMAGE_NAME }}:$TAG "Dockerfile.hf"
       - name: Log in to Quay
         run: docker login -u ${{ secrets.QUAY_ROBOT_USERNAME }} -p ${{ secrets.QUAY_ROBOT_SECRET }} quay.io
       - name: Push to Quay CI repo
