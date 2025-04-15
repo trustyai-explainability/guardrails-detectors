@@ -92,8 +92,9 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes:  PR image build and manifest generation completed successfully
+          body-includes:  PR image build completed successfully
       - uses: peter-evans/create-or-update-comment@v4
+        if:  env.BUILD_CONTEXT == 'ci'
         name: Generate/update success message comment
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
