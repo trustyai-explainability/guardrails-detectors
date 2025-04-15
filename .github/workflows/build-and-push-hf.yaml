@@ -74,10 +74,6 @@ jobs:
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
       #
       # Run docker commands
-      - name: Pull prerequisite images
-        run: |
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS base)')
-          docker pull $(cat detectors/Dockerfile.hf | grep -o -P '(?<=FROM ).*(?= AS builder)')
       - name: Put expiry date on CI-tagged image
         if:  env.BUILD_CONTEXT == 'ci'
         run: echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
