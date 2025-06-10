@@ -55,8 +55,20 @@ class LLMJudgeDetector:
         Returns:
             ContentAnalysisResponse with evaluation results
         """
-        if "metric" not in params and "criteria" not in params:
-            params["metric"] = "safety" # Default to safety
+        if "metric" not in params:
+            if "criteria" not in params:
+                params["metric"] = "safety" # Default to safety
+            elif "scale" not in params:
+                params["scale"] = (0, 1) # Default to 0-1 scale
+        
+        if "metric" in params:
+            if params["metric"] not in self.available_metrics:
+                raise MetricNotFoundError(
+                    f"Metric '{params['metric']}' not found. Available metrics: {', '.join(sorted(self.available_metrics))}"
+                )
+            judge_metric = BUILTIN_METRICS[params["metric"]]
+            if judge_metric.scale is None:
+                params["scale"] = (0, 1) # Default to 0-1 scale
 
         evaluation_params = {
             "content": content,
