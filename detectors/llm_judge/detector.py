@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(".."))
 from vllm_judge import Judge, EvaluationResult, BUILTIN_METRICS
 from vllm_judge.exceptions import MetricNotFoundError
 from common.app import logger
-from scheme import (
+from .scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
@@ -41,7 +41,7 @@ class LLMJudgeDetector:
             logger.info(f"Available metrics: {', '.join(sorted(self.available_metrics))}")
             
         except Exception as e:
-            logger.error(f"Failed to initialize LLM Judge: {e}")
+            logger.error(f"Failed to detect model: {e}")
             raise
     
     async def evaluate_single_content(self, content: str, params: Dict[str, Any]) -> ContentAnalysisResponse:
