@@ -17,10 +17,10 @@ spec:
       name: guardrails-detector-llm-judge
   containers:
     - name: kserve-container
-      image: quay.io/rh-ee-spandraj/guardrails-detector-judge:latest
+      image: quay.io/spandraj/guardrails-detector-judge:latest
       command:
         - uvicorn
-        - app:app
+        - detectors.llm_judge.app:app
       args:
         - "--workers"
         - "1"
@@ -29,7 +29,7 @@ spec:
         - "--port"
         - "8000"
         - "--log-config"
-        - "/common/log_conf.yaml"
+        - "/app/detectors/common/log_conf.yaml"
       env:
         - name: VLLM_BASE_URL
           value: "http://qwen2-predictor:8080" # <-- Change this to your vLLM URL

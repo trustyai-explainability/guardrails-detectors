@@ -1,15 +1,12 @@
-import os
-import sys
 from contextlib import asynccontextmanager
 from typing import Annotated, Dict
 
 from fastapi import Header
 from prometheus_fastapi_instrumentator import Instrumentator
-sys.path.insert(0, os.path.abspath(".."))
 
-from common.app import DetectorBaseAPI as FastAPI
-from .detector import LLMJudgeDetector
-from .scheme import (
+from detectors.common.app import DetectorBaseAPI as FastAPI
+from detectors.llm_judge.detector import LLMJudgeDetector
+from detectors.llm_judge.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,
     MetricsListResponse,

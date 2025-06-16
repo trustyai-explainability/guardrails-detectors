@@ -1,13 +1,10 @@
 import os
-import sys
 from typing import List, Dict, Any
-
-sys.path.insert(0, os.path.abspath(".."))
 
 from vllm_judge import Judge, EvaluationResult, BUILTIN_METRICS
 from vllm_judge.exceptions import MetricNotFoundError
-from common.app import logger
-from .scheme import (
+from detectors.common.app import logger
+from detectors.llm_judge.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
@@ -24,7 +21,6 @@ class LLMJudgeDetector:
         
         # Get configuration from environment
         self.vllm_base_url = os.environ.get("VLLM_BASE_URL")
-        self.vllm_model = os.environ.get("VLLM_MODEL")
         
         if not self.vllm_base_url:
             raise ValueError("VLLM_BASE_URL environment variable is required")
