@@ -9,10 +9,12 @@ def setup_imports():
     project_root = os.path.dirname(os.path.dirname(__file__))
     detectors_path = os.path.join(project_root, "detectors")
     huggingface_path = os.path.join(detectors_path, "huggingface")
+    llm_judge_path = os.path.join(detectors_path, "llm_judge")
     paths = [
         huggingface_path,
         detectors_path,
         project_root,
+        llm_judge_path,
     ]
 
     for path in paths:

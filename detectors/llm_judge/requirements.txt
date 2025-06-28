@@ -1,0 +1,2 @@
+vllm-judge==0.1.6
+pyyaml==6.0.2

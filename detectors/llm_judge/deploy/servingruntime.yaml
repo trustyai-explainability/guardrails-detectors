@@ -1,0 +1,45 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: guardrails-detector-runtime-judge
+  namespace: model-namespace
+  annotations:
+    openshift.io/display-name: Guardrails LLM Judge Detector ServingRuntime for KServe
+  labels:
+    opendatahub.io/dashboard: 'true'
+spec:
+  annotations:
+    prometheus.io/port: '8080'
+    prometheus.io/path: '/metrics'
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: guardrails-detector-llm-judge
+  containers:
+    - name: kserve-container
+      image: quay.io/spandraj/guardrails-detector-judge:latest
+      command:
+        - uvicorn
+        - detectors.llm_judge.app:app
+      args:
+        - "--workers"
+        - "1"
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        - "--log-config"
+        - "/app/detectors/common/log_conf.yaml"
+      env:
+        - name: VLLM_BASE_URL
+          value: "http://qwen2-predictor:8080" # <-- Change this to your vLLM URL
+      ports:
+        - containerPort: 8000
+          protocol: TCP
+      resources:
+        requests:
+          memory: "5Gi"
+          cpu: "1"
+        limits:
+          memory: "10Gi"
+          cpu: "2"
