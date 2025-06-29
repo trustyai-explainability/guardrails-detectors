@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
     # Clean up the ML models and release the resources
     detector: Detector = app.get_detector()
     if detector and hasattr(detector, 'close'):
-        await detector.close()
+        detector.close()
     app.cleanup_detector()
 
 
