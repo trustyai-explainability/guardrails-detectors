@@ -16,7 +16,7 @@ from scheme import (
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
 )
-
+import gc
 
 class Detector:
     risk_names = [
@@ -280,3 +280,20 @@ class Detector:
                 raise ValueError("Unsupported model type for analysis.")
             contents_analyses.append(analyses)
         return contents_analyses
+
+
+    def close(self) -> None:
+        """Clean up model and tokenizer resources."""
+        
+        if self.model:
+            if hasattr(self.model, 'to') and self.cuda_device.type == "cuda":
+                self.model = self.model.to(torch.device("cpu"))
+            self.model = None
+
+        if self.tokenizer:
+            self.tokenizer = None
+
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

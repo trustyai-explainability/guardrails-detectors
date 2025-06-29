@@ -16,7 +16,7 @@ class LLMJudgeDetector:
     
     def __init__(self) -> None:
         """Initialize the LLM Judge Detector."""
-        self.judge = None
+        self.judge: Judge = None
         self.available_metrics = set(BUILTIN_METRICS.keys())
         
         # Get configuration from environment
