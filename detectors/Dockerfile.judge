@@ -7,11 +7,10 @@ RUN microdnf update -y && \
 
 FROM base as builder
 
-COPY ./common/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY ./llm_judge/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./common ./common
+COPY ./llm_judge/requirements.txt ./llm_judge/requirements.txt
+COPY ./llm_judge/requirements.in ./llm_judge/requirements.in
+RUN pip install --no-cache-dir -r ./llm_judge/requirements.in
 
 FROM builder
 
