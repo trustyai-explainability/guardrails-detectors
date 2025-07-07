@@ -286,7 +286,7 @@ class Detector:
         """Clean up model and tokenizer resources."""
         
         if self.model:
-            if hasattr(self.model, 'to') and self.cuda_device.type == "cuda":
+            if hasattr(self.model, 'to') and hasattr(self.model, 'device') and self.model.device.type != "cpu":
                 self.model = self.model.to(torch.device("cpu"))
             self.model = None
 
