@@ -15,15 +15,16 @@ from scheme import (
     Error,
 )
 
-detector_objects = {}
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    detector_objects["detector"] = Detector()
+    app.set_detector(Detector())
     yield
     # Clean up the ML models and release the resources
-    detector_objects.clear()
+    detector: Detector = app.get_detector()
+    if detector and hasattr(detector, 'close'):
+        detector.close()
+    app.cleanup_detector()
 
 
 app = FastAPI(lifespan=lifespan, dependencies=[])
@@ -44,4 +45,7 @@ async def detector_unary_handler(
     request: ContentAnalysisHttpRequest,
     detector_id: Annotated[str, Header(example="en_syntax_slate.38m.hap")],
 ):
-    return ContentsAnalysisResponse(root=detector_objects["detector"].run(request))
+    detector: Detector = app.get_detector()
+    if not detector:
+        raise RuntimeError("Detector is not initialized")
+    return ContentsAnalysisResponse(root=detector.run(request))

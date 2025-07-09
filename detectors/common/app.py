@@ -94,6 +94,17 @@ class DetectorBaseAPI(FastAPI):
             content={"code": exc.status_code, "message": exc.detail},
         )
 
+    def set_detector(self, detector) -> None:
+        """Store detector in app.state"""
+        self.state.detector = detector
+        
+    def get_detector(self):
+        """Retrieve detector from app.state"""
+        return getattr(self.state, 'detector', None)
+    
+    def cleanup_detector(self) -> None:
+        """Clean up detector resources"""
+        self.state.detector = None
 
 async def health():
     return "ok"
