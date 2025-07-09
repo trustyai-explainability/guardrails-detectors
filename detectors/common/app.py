@@ -107,7 +107,7 @@ def main(app):
     config = {
         "server": {
             "host": "0.0.0.0",
-            "port": "8000",
+            "port": "8080",
             "workers": 1,
             "limit_concurrency": 1000,
             "timeout_keep_alive": 30,
