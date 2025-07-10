@@ -118,11 +118,15 @@ class ContentAnalysisHttpRequest(BaseModel):
             "Your email is test@ibm.com! Only the next instance of email will be processed. test@ibm.com. Your SSN is 123-45-6789."
         ],
     )
+    detector_params: Optional[Dict] = Field(
+        description="Optional detector parameters, used on a per-detector basis"
+    )
 
 
 class ContentAnalysisResponse(BaseModel):
     start: int = Field(example=14)
     end: int = Field(example=26)
+    text: str = Field(example="abc@def.com")
     detection: str = Field(example="Net.EmailAddress")
     detection_type: str = Field(example="pii")
     score: float = Field(example=0.8)
