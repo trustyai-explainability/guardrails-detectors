@@ -1,4 +1,6 @@
 import json
+from fastapi import HTTPException
+
 import jsonschema
 import xml.etree.ElementTree as ET
 import xmlschema
@@ -197,5 +199,5 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
                     if result is not None:
                         detections += [result]
                 else:
-                    raise ValueError(f"Unrecognized file type: {file_type}")
+                    raise HTTPException(status_code=400, detail=f"Unrecognized file type: {file_type}")
         return detections

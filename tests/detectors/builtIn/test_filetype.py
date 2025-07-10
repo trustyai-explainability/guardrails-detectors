@@ -210,7 +210,7 @@ class TestFileTypeDetectors:
             "detector_params": {"file_type": ["not_a_type"]}
         }
         resp = client.post("/api/v1/text/contents", json=payload)
-        assert resp.status_code == 500
+        assert resp.status_code == 400
         data = resp.json()
         assert "message" in data
         assert "Unrecognized file type" in data["message"]

@@ -26,6 +26,8 @@ def detect_content(request: ContentAnalysisHttpRequest):
             if detector_kind in request.detector_params:
                 try:
                     message_detections += detector_registry.handle_request(content, request.detector_params)
+                except HTTPException as e:
+                    raise e
                 except Exception as e:
                     raise HTTPException(status_code=500) from e
         detections.append(message_detections)
