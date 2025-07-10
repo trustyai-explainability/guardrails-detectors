@@ -11,8 +11,6 @@ class TestRegexDetectors:
         "regex,content,expected",
         [
             ("email", "Contact me at test@example.com", "test@example.com"),
-            ("credit-card", "Card: 4111-1111-1111-1111", "4111-1111-1111-1111"),
-            ("credit-card", "Card: 4111 1111 1111 1111", "4111 1111 1111 1111"),
             ("ipv4", "My IP is 192.168.1.1", "192.168.1.1"),
             ("us-social-security-number", "SSN: 123-45-6789", "123-45-6789"),
             ("us-social-security-number", "SSN: 123 45 6789", "123 45 6789"),
@@ -37,8 +35,7 @@ class TestRegexDetectors:
     @pytest.mark.parametrize(
         "regex,content",
         [
-            ("email", "Contact me at test@exame.c "),
-            ("credit-card", "Card: 4111111111111111"),
+            ("email", "Contact me at test@exame.c "), # invalid luhn card
             ("us-social-security-number", "SSN: 123456789"),
             ("us-phone-number", "Call 1234567890"),
         ]
@@ -47,6 +44,73 @@ class TestRegexDetectors:
         payload = {
             "contents": [content],
             "detector_params": {"regex": [regex]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        assert resp.json()[0] == []
+
+    @pytest.mark.parametrize(
+        "content,expected",
+        [
+            # Visa
+            ("Card: 4111 1111 1111 1111", "4111 1111 1111 1111"),
+            ("Card: 4111-1111-1111-1111", "4111-1111-1111-1111"),
+            ("Card: 4111111111111111", "4111111111111111"),
+            # MasterCard
+            ("Card: 5555 5555 5555 4444", "5555 5555 5555 4444"),
+            ("Card: 5555-5555-5555-4444", "5555-5555-5555-4444"),
+            ("Card: 5555555555554444", "5555555555554444"),
+            # Amex
+            ("Card: 3782 822463 10005", "3782 822463 10005"),
+            ("Card: 3782-822463-10005", "3782-822463-10005"),
+            ("Card: 378282246310005", "378282246310005"),
+            # Discover
+            ("Card: 6011 1111 1111 1117", "6011 1111 1111 1117"),
+            ("Card: 6011-1111-1111-1117", "6011-1111-1111-1117"),
+            ("Card: 6011111111111117", "6011111111111117"),
+            # Diners Club
+            ("Card: 3056 930902 5904", "3056 930902 5904"),
+            ("Card: 3056-930902-5904", "3056-930902-5904"),
+            ("Card: 30569309025904", "30569309025904"),
+            # JCB
+            ("Card: 3530 1113 3330 0000", "3530 1113 3330 0000"),
+            ("Card: 3530-1113-3330-0000", "3530-1113-3330-0000"),
+            ("Card: 3530111333300000", "3530111333300000"),
+        ]
+    )
+    def test_credit_card_detector_patterns(self, client, content, expected):
+        payload = {
+            "contents": [content],
+            "detector_params": {"regex": ["credit-card"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        found = [d["text"] for d in resp.json()[0]]
+        assert expected in found
+
+    @pytest.mark.parametrize(
+        "content",
+        [
+            # Invalid Luhn
+            "Card: 4111 1111 1111 1112",
+            "Card: 5555-5555-5555-4440",
+            "Card: 3782 822463 10006",
+            "Card: 6011-1111-1111-1110",
+            "Card: 3056-930902-5900",
+            "Card: 3530-1113-3330-0001",
+            # Not enough digits
+            "Card: 4111 1111 1111",
+            "Card: 5555-5555-5555",
+            "Card: 3782 822463",
+            "Card: 6011-1111-1111",
+            "Card: 3056-930902",
+            "Card: 3530-1113-3330",
+        ]
+    )
+    def test_credit_card_detector_invalid(self, client, content):
+        payload = {
+            "contents": [content],
+            "detector_params": {"regex": ["credit-card"]}
         }
         resp = client.post("/api/v1/text/contents", json=payload)
         assert resp.status_code == 200
@@ -115,6 +179,19 @@ class TestRegexDetectors:
         results = resp.json()
         assert any("a@b.com" in d["text"] for d in results[0])
         assert any("123-45-6789" in d["text"] for d in results[1])
+
+    def test_single_detector(self, client):
+        payload = {
+            "contents": [
+                "Email: a@b.com",
+                "SSN: 123-45-6789"
+            ],
+            "detector_params": {"regex": "email"}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        results = resp.json()
+        assert any("a@b.com" in d["text"] for d in results[0])
 
 
 

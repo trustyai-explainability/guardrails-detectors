@@ -11,9 +11,57 @@ def email_address_detector(string: str) -> List[ContentAnalysisResponse]:
     return get_regex_detections(string, pattern, "pii", "email_address")
 
 def credit_card_detector(string: str) -> List[ContentAnalysisResponse]:
-    """Detect credit cards in the text contents"""
-    pattern = r"\b(?:4\d{3}|5[0-5]\d{2}|6\d{3}|1\d{3}|3\d{3})[- ]\d{4}[- ]\d{4}[- ]\d{4}\b"
-    return get_regex_detections(string, pattern, "pii", "credit_card")
+    """Detect credit cards in the text contents (Visa, MasterCard, Amex, Discover, Diners Club, JCB) with Luhn check"""
+    # Match major card types with separators (space or dash) between groups, not continuous digits
+    pattern = (
+        r"\b(?:"
+        r"4\d{3}([- ])\d{4}\1\d{4}\1\d{4}"                # Visa 16-digit with separators
+        r"|4\d{15}"                                       # Visa 16-digit continuous
+        r"|5[1-5]\d{2}([- ])\d{4}\2\d{4}\2\d{4}"           # MasterCard 16-digit with separators
+        r"|5[1-5]\d{14}"                                  # MasterCard 16-digit continuous
+        r"|3[47]\d{2}([- ])\d{6}\3\d{5}"                   # Amex 15-digit with separators
+        r"|3[47]\d{13}"                                   # Amex 15-digit continuous
+        r"|6(?:011|5\d{2})([- ])\d{4}\4\d{4}\4\d{4}"       # Discover 16-digit with separators
+        r"|6(?:011|5\d{2})\d{12}"                         # Discover 16-digit continuous
+        r"|3(?:0[0-5]|[68]\d)\d([- ])\d{6}\5\d{4}"         # Diners Club 14-digit with separators
+        r"|3(?:0[0-5]|[68]\d)\d{11}"                      # Diners Club 14-digit continuous
+        r"|35\d{2}([- ])\d{4}\6\d{4}\6\d{4}"               # JCB 16-digit with separators
+        r"|35\d{14}"                                      # JCB 16-digit continuous
+        r")\b"
+    )
+    # Find all matches and filter with Luhn check
+    detections = []
+    for match in re.finditer(pattern, string):
+        cc_number = match.group(0).replace(" ", "").replace("-", "")
+        print(cc_number)
+        if is_luhn_valid(cc_number):
+            detections.append(
+                ContentAnalysisResponse(
+                    start=match.start(),
+                    end=match.end(),
+                    text=match.group(0),
+                    detection_type="pii",
+                    detection="credit_card",
+                    score=1.0
+                )
+            )
+    return detections
+
+def luhn_checksum(card_number: str):
+    card_number = "".join(c for c in card_number if c in "0123456789")
+    def digits_of(n):
+        return [int(d) for d in str(n)]
+    digits = digits_of(card_number)
+    odd_digits = digits[-1::-2]
+    even_digits = digits[-2::-2]
+    checksum = 0
+    checksum += sum(odd_digits)
+    for d in even_digits:
+        checksum += sum(digits_of(d*2))
+    return checksum % 10
+
+def is_luhn_valid(card_number):
+    return luhn_checksum(card_number) == 0
 
 
 def ipv4_detector(string: str) -> List[ContentAnalysisResponse]:
@@ -85,8 +133,10 @@ class RegexDetectorRegistry(BaseDetectorRegistry):
 
     def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
         detections = []
-        if "regex" in detector_params and isinstance(detector_params["regex"], list):
-            for regex in detector_params["regex"]:
+        if "regex" in detector_params and isinstance(detector_params["regex"], (list, str)):
+            regexes = detector_params["regex"]
+            regexes = [regexes] if isinstance(regexes, str) else regexes
+            for regex in regexes:
                 if regex == "$CUSTOM_REGEX":
                     pass
                 elif regex in self.registry:

@@ -78,7 +78,6 @@ class TestFileTypeDetectors:
         assert detections[0]["detection"] == "json_schema_mismatch"
 
     def test_json_schema_invalid_json(self, client: TestClient, jsonschema):
-        import json
         payload = {
             "contents": ['{a: 1}'],
             "detector_params": {"file_type": [f"json-with-schema:{jsonschema}"]}
@@ -91,9 +90,7 @@ class TestFileTypeDetectors:
 
     def test_json_schema_invalid_json_schema(self, client: TestClient):
         # The schema expects an object with a required integer property "a"
-        invalid_schema = {
-            "notvalidjson: {"
-        }
+        invalid_schema = '{"notvalidjson": {'
         payload = {
             "contents": [json.dumps({"a": 1})],
             "detector_params": {"file_type": [f"json-with-schema:{invalid_schema}"]}
@@ -217,6 +214,17 @@ class TestFileTypeDetectors:
         data = resp.json()
         assert "message" in data
         assert "Unrecognized file type" in data["message"]
+
+    def test_detect_content_single_filetype(self, client: TestClient):
+        payload = {
+            "contents": ['{a: 1, b: 2}'],
+            "detector_params": {"file_type": "json"}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        detections = resp.json()[0]
+        assert detections[0]["detection"] == "invalid_json"
+
 
     def test_multiple_filetype_valid_and_invalid(self, client: TestClient):
         import json

@@ -176,8 +176,10 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
 
     def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
         detections = []
-        if "file_type" in detector_params and isinstance(detector_params["file_type"], list):
-            for file_type in detector_params["file_type"]:
+        if "file_type" in detector_params and isinstance(detector_params["file_type"], (list, str)):
+            file_types = detector_params["file_type"]
+            file_types = [file_types] if isinstance(file_types, str) else file_types
+            for file_type in file_types:
                 if file_type.startswith("json-with-schema"):
                     result = is_valid_json_schema(content, file_type.split("json-with-schema:")[1])
                     if result is not None:
