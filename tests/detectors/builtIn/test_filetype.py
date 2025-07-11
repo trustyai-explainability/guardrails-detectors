@@ -7,6 +7,10 @@ class TestFileTypeDetectors:
     @pytest.fixture
     def client(self):
         from detectors.built_in.app import app
+        from detectors.built_in.file_type_detectors import FileTypeDetectorRegistry
+
+        app.set_detector(FileTypeDetectorRegistry(), "file_type")
+
         return TestClient(app)
 
     @pytest.fixture
