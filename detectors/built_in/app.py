@@ -32,7 +32,8 @@ def detect_content(request: ContentAnalysisHttpRequest):
     for content in request.contents:
         message_detections = []
         for detector_kind, detector_registry in app.get_all_detectors().items():
-            assert isinstance(detector_registry, BaseDetectorRegistry), f"Detector {detector_kind} is not a valid BaseDetectorRegistry"
+            if not isinstance(detector_registry, BaseDetectorRegistry):
+                raise TypeError(f"Detector {detector_kind} is not a valid BaseDetectorRegistry")
             if detector_kind in request.detector_params:
                 try:
                     message_detections += detector_registry.handle_request(content, request.detector_params)
@@ -48,7 +49,8 @@ def detect_content(request: ContentAnalysisHttpRequest):
 def get_registry():
     result = {}
     for detector_type, detector_registry in app.get_all_detectors().items():
-        assert isinstance(detector_registry, BaseDetectorRegistry), f"Detector {detector_type} is not a valid BaseDetectorRegistry"
+        if not isinstance(detector_registry, BaseDetectorRegistry):
+            raise TypeError(f"Detector {detector_type} is not a valid BaseDetectorRegistry")
         result[detector_type] = {}
         for detector_name, detector_fn in detector_registry.get_registry().items():
             result[detector_type][detector_name] = detector_fn.__doc__

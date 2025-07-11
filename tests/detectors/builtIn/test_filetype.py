@@ -285,3 +285,42 @@ class TestFileTypeDetectors:
 
         # 7: invalid yaml
         assert any(d["detection"] == "invalid_yaml" for d in detections[6])
+    
+    
+    # === ERROR HANDLING & INVALID DETECTOR TYPES =================================================
+    def test_unregistered_detector_kind_ignored(self, client: TestClient):
+        """Test that requesting an unregistered detector kind is silently ignored"""
+        payload = {
+            "contents": ['{"a": 1}'],
+            "detector_params": {"nonexistent_detector": ["some_value"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since nonexistent_detector is not registered
+        assert resp.json()[0] == []
+
+    def test_mixed_valid_invalid_detector_kinds(self, client: TestClient):
+        """Test mixing valid and invalid detector kinds"""
+        payload = {
+            "contents": ['{a: 1, b: 2}'],
+            "detector_params": {
+                "file_type": ["json"],  # valid detector kind
+                "nonexistent_detector": ["some_value"]  # invalid detector kind
+            }
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        detections = resp.json()[0]
+        # Should only process the valid detector kind
+        assert detections[0]["detection"] == "invalid_json"
+    
+    def test_empty_detector_params(self, client: TestClient):
+        """Test with empty detector_params"""
+        payload = {
+            "contents": ['{"a": 1}'],
+            "detector_params": {}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since no detectors are specified
+        assert resp.json()[0] == []
