@@ -236,3 +236,21 @@ class TestRegexDetectors:
         # Should return empty list since no detectors are specified
         assert resp.json()[0] == []
 
+    def test_null_regex_pattern(self, client):
+        """Test with null regex pattern"""
+        payload = {
+            "contents": ["test@example.com"],
+            "detector_params": {"regex": [None]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 500  # Should cause an error when processing None
+
+    def test_malformed_regex_groups(self, client):
+        """Test malformed regex with unmatched groups"""
+        payload = {
+            "contents": ["test content"],
+            "detector_params": {"regex": ["(unclosed group"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 500  # Should cause regex compilation error
+
