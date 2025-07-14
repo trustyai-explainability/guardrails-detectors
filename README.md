@@ -10,7 +10,7 @@ At the moment, the following detectors are supported:
 
 - `huggingface` -- a generic detector class that is intended to be compatible with any [AutoModelForSequenceClassification](https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoModelForSequenceClassification) or a specific kind of [AutoModelForCausalLM](https://huggingface.co/docs/transformers/en/model_doc/auto#transformers.AutoModelForCausalLM), namely [GraniteForCausalLM](https://github.com/ibm-granite/granite-guardian); this detector exposes `/api/v1/text/contents` and thus, could be configured to be a detector of type: `text_contents` within the FMS Guardrails Orchestrator framework. This detector is also intended to be deployed as a [KServe](https://github.com/kserve/kserve) inference service. 
 - `llm_judge` -- Integrates the [vLLM Judge](https://github.com/trustyai-explainability/vllm_judge) library to use LLM-as-a-judge based guardrailing architecture
-- `built_in` -- Small, lightweight detection functions that are deployed out-of-the-box alongside the [Guardrails Orchestrator]([https://github.com/foundation-model-stack/fms-guardrails-orchestrator). The built-in detectors provide a number of heuristic or algorithmic detection functions, such as:
+- `builtIn` -- Small, lightweight detection functions that are deployed out-of-the-box alongside the [Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator). The built-in detectors provide a number of heuristic or algorithmic detection functions, such as:
   - Regex-based detections, with pre-written regexes for flagging various Personally Identifiable Information items like emails or phone numbers, as well as the ability to provide custom regexes
   - File-type validations, for verifying if model input/output is valid JSON, XML, or YAML
 
@@ -19,10 +19,10 @@ At the moment, the following detectors are supported:
 
 * `huggingface`: podman build -f detectors/Dockerfile.hf detectors
 * `llm_judge`: podman build -f detectors/Dockerfile.llm_judge detectors
-* `built_in`: podman build -f detectors/Dockerfile.builtIn detectors
+* `builtIn`: podman build -f detectors/Dockerfile.builtIn detectors
 
 ## Running locally
-* `built_in`: podman run -p 8080:8080 $BUILT_IN_IMAGE
+* `builtIn`: podman run -p 8080:8080 $BUILT_IN_IMAGE
 
 ### File Type Validation Example
 ```bash
