@@ -7,6 +7,10 @@ class TestFileTypeDetectors:
     @pytest.fixture
     def client(self):
         from detectors.built_in.app import app
+        from detectors.built_in.file_type_detectors import FileTypeDetectorRegistry
+
+        app.set_detector(FileTypeDetectorRegistry(), "file_type")
+
         return TestClient(app)
 
     @pytest.fixture
@@ -281,3 +285,78 @@ class TestFileTypeDetectors:
 
         # 7: invalid yaml
         assert any(d["detection"] == "invalid_yaml" for d in detections[6])
+    
+    
+    # === ERROR HANDLING & INVALID DETECTOR TYPES =================================================
+    def test_unregistered_detector_kind_ignored(self, client: TestClient):
+        """Test that requesting an unregistered detector kind is silently ignored"""
+        payload = {
+            "contents": ['{"a": 1}'],
+            "detector_params": {"nonexistent_detector": ["some_value"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since nonexistent_detector is not registered
+        assert resp.json()[0] == []
+
+    def test_mixed_valid_invalid_detector_kinds(self, client: TestClient):
+        """Test mixing valid and invalid detector kinds"""
+        payload = {
+            "contents": ['{a: 1, b: 2}'],
+            "detector_params": {
+                "file_type": ["json"],  # valid detector kind
+                "nonexistent_detector": ["some_value"]  # invalid detector kind
+            }
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        detections = resp.json()[0]
+        # Should only process the valid detector kind
+        assert detections[0]["detection"] == "invalid_json"
+    
+    def test_empty_detector_params(self, client: TestClient):
+        """Test with empty detector_params"""
+        payload = {
+            "contents": ['{"a": 1}'],
+            "detector_params": {}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since no detectors are specified
+        assert resp.json()[0] == []
+    
+    def test_multiple_invalid_file_types(self, client: TestClient):
+        """Test multiple invalid file types to ensure all errors are handled"""
+        payload = {
+            "contents": ['test content'],
+            "detector_params": {"file_type": ["invalid_type_1", "invalid_type_2"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "message" in data
+        assert "Unrecognized file type" in data["message"]
+
+    def test_mixed_valid_invalid_file_types(self, client: TestClient):
+        """Test mixing valid and invalid file types"""
+        payload = {
+            "contents": ['{a: 1, b: 2}'],
+            "detector_params": {"file_type": ["json", "invalid_type"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "message" in data
+        assert "Unrecognized file type" in data["message"]
+    
+    def test_case_sensitivity_file_types(self, client: TestClient):
+        """Test case sensitivity of file types"""
+        payload = {
+            "contents": ['{"a": 1}'],
+            "detector_params": {"file_type": ["JSON"]}  # uppercase
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 400
+        data = resp.json()
+        assert "message" in data
+        assert "Unrecognized file type" in data["message"]

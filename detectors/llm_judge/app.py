@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Annotated, Dict
 
-from fastapi import Header
+from fastapi import Header, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from detectors.common.app import DetectorBaseAPI as FastAPI
@@ -48,6 +48,8 @@ async def detector_unary_handler(
 ):
     """Analyze content using LLM-as-Judge evaluation."""
     detector: LLMJudgeDetector = app.get_detector()
+    if not detector:
+        raise HTTPException(status_code=503, detail="Detector not found")
     return ContentsAnalysisResponse(root=await detector.run(request))
 
 
@@ -63,7 +65,7 @@ async def list_metrics():
     """List all available evaluation metrics."""
     detector: LLMJudgeDetector = app.get_detector()
     if not detector:
-        return {"metrics": [], "total": 0}
+        raise HTTPException(status_code=503, detail="Detector not found")
     
     metrics = detector.list_available_metrics()
     return MetricsListResponse(metrics=metrics, total=len(metrics))

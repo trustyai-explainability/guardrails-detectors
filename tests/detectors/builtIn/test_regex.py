@@ -5,6 +5,10 @@ class TestRegexDetectors:
     @pytest.fixture
     def client(self):
         from detectors.built_in.app import app
+        from detectors.built_in.regex_detectors import RegexDetectorRegistry
+
+        app.set_detector(RegexDetectorRegistry(), "regex")
+
         return TestClient(app)
 
     @pytest.mark.parametrize(
@@ -194,4 +198,59 @@ class TestRegexDetectors:
         assert any("a@b.com" in d["text"] for d in results[0])
 
 
+    # === ERROR HANDLING & INVALID DETECTOR TYPES =================================================    
+    def test_unregistered_detector_kind_ignored(self, client):
+        """Test that requesting an unregistered detector kind is silently ignored"""
+        payload = {
+            "contents": ["test@example.com"],
+            "detector_params": {"nonexistent_detector": ["some_value"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since nonexistent_detector is not registered
+        assert resp.json()[0] == []
+
+    def test_mixed_valid_invalid_detector_kinds(self, client):
+        """Test mixing valid and invalid detector kinds"""
+        payload = {
+            "contents": ["Contact me at test@example.com"],
+            "detector_params": {
+                "regex": ["email"],  # valid detector kind
+                "nonexistent_detector": ["some_value"]  # invalid detector kind
+            }
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        detections = resp.json()[0]
+        # Should only process the valid detector kind
+        assert detections[0]["text"] == "test@example.com"
+
+    def test_empty_detector_params(self, client):
+        """Test with empty detector_params"""
+        payload = {
+            "contents": ["test@example.com"],
+            "detector_params": {}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 200
+        # Should return empty list since no detectors are specified
+        assert resp.json()[0] == []
+
+    def test_null_regex_pattern(self, client):
+        """Test with null regex pattern"""
+        payload = {
+            "contents": ["test@example.com"],
+            "detector_params": {"regex": [None]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 500  # Should cause an error when processing None
+
+    def test_malformed_regex_groups(self, client):
+        """Test malformed regex with unmatched groups"""
+        payload = {
+            "contents": ["test content"],
+            "detector_params": {"regex": ["(unclosed group"]}
+        }
+        resp = client.post("/api/v1/text/contents", json=payload)
+        assert resp.status_code == 500  # Should cause regex compilation error
 
