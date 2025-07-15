@@ -1,4 +1,4 @@
-name: Build and Push - Huggingface Detector
+name: Build and Push - Detectors
 on:
   push:
     branches:
@@ -6,12 +6,11 @@ on:
     tags:
       - v*
     paths:
-      - 'detectors/huggingface/*'
-      - 'detectors/Dockerfile.hf'
+      - 'detectors/*'
+      - '.github/workflows/*'
   pull_request_target:
     paths:
-      - 'detectors/huggingface/*'
-      - 'detectors/Dockerfile.hf'
+      - 'detectors/*'
     types: [labeled, opened, synchronize, reopened]
 jobs:
   # Ensure that tests pass before publishing a new image.
