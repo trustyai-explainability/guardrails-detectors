@@ -26,7 +26,7 @@ At the moment, the following detectors are supported:
 
 ## Examples
 
-- Check out [built-in detector examples](docs/builtIn_examples.md) to see how to use the built-in detectors for file type validation and personally identifiable information (PII) detection
+- Check out [built-in detector examples](docs/builtin_examples.md) to see how to use the built-in detectors for file type validation and personally identifiable information (PII) detection
 - Check out [Hugging Face detector examples](docs/hf_examples.md) to see how to use the Hugging Face detectors for detecting toxic content and prompt injection 
 
 ## API
