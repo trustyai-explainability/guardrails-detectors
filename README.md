@@ -18,7 +18,7 @@ At the moment, the following detectors are supported:
 ## Building
 
 * `huggingface`: podman build -f detectors/Dockerfile.hf detectors
-* `llm_judge`: podman build -f detectors/Dockerfile.llm_judge detectors
+* `llm_judge`: podman build -f detectors/Dockerfile.judge detectors
 * `builtIn`: podman build -f detectors/Dockerfile.builtIn detectors
 
 ## Running locally
@@ -27,7 +27,8 @@ At the moment, the following detectors are supported:
 ## Examples
 
 - Check out [built-in detector examples](docs/builtin_examples.md) to see how to use the built-in detectors for file type validation and personally identifiable information (PII) detection
-- Check out [Hugging Face detector examples](docs/hf_examples.md) to see how to use the Hugging Face detectors for detecting toxic content and prompt injection 
+- Check out [Hugging Face detector examples](docs/hf_examples.md) to see how to use the Hugging Face detectors for detecting toxic content and prompt injection
+- Check out [LLM Judge detector examples](docs/llm_judge_examples.md) to see how to use any OpenAI API compatible LLM for content assessment with built-in metrics and custom natural-language criteria
 
 ## API
 See [IBM Detector API](https://foundation-model-stack.github.io/fms-guardrails-orchestrator/?urls.primaryName=Detector+API)
