@@ -27,7 +27,7 @@ podman run --rm -p 8000:8000 -e VLLM_BASE_URL=http://host.docker.internal:9090 $
 
 Instead of writing complex prompts let us use pre-defined prompts for common scenarios. vLLM-Judge library provides various builtin metrics (which are pre-defined prompts) including moderation (`safety`, `toxicity`, `bias`), general purpose (`helpfulness`, `clarity`, `conciseness`, `relevance`, `coherence`) and others (like code quality, content quality). Let's use one of the pre-defined metrics from vLLM-Judge, eg., `safety`.
 
-The `safety` metric evaluates the content safety across multiple dimensions like physical harm, psycological harm, social harm and vulnerable groups.
+The `safety` metric evaluates the content safety across multiple dimensions like physical harm, psychological harm, social harm and vulnerable groups.
 
 **Request:**
 ```bash
@@ -134,9 +134,9 @@ curl -s -X POST \
 ]
 ```
 
-We get pretty ok results where model uses positive label (like 'True') and higher scores (like 1.0) for positive instances i.e, that satisfy the criteria and similarly negative label ('FAIL') and lower score (0.2) for negative instances i.e, that does not satisfy the criteria.
+We get pretty ok results where model uses positive label (like 'True') and higher scores (like 1.0) for positive instances i.e., those that satisfy the criteria and similarly negative label ('FAIL') and lower score (0.2) for negative instances i.e., those that do not satisfy the criteria.
 
-But how to specifically say which labels to use and how to assign scores? This is where the `rubric` parameter comes in.
+But how do you specify which labels to use and how to assign scores? This is where the `rubric` parameter comes in.
 
 #### Example 3: Custom Labels and Scoring with Rubrics
 
@@ -265,7 +265,7 @@ Below is the full list of parameters that can be passed to `detector_params` to 
 - `template_vars`: Variable mapping to substitute in templates
 - `template_engine`: Template engine to use ('format' or 'jinja2'), default is 'format'
 - `system_prompt`: Custom system message to take full control of the evaluator LLM persona
-- `examples`: Few-shot examples. List of JSON objects, each JSON represents an example and must contain `content`, `score`, and `reasoning` fields and `reasoning` fields
+- `examples`: Few-shot examples. List of JSON objects, each JSON represents an example and must contain `content`, `score`, and `reasoning` fields
 
 ### Get list of pre-defined metric names:
 
