@@ -136,11 +136,13 @@ jobs:
           exit-code: '0'
           ignore-unfixed: false
           vuln-type: 'os,library'
-      - name: Update Security tab
+      - name: Update Security tab - Huggingface
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
-      - name: Update Security tab
+          category: huggingface
+      - name: Update Security tab - Built-in
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results-built-in.sarif'
+          category: built-in
