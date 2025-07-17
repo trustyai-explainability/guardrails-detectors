@@ -10,10 +10,9 @@ RUN pip install --no-cache-dir torch
 FROM base as builder
 
 COPY ./common/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 COPY ./huggingface/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./huggingface/requirements.in .
+RUN pip install --no-cache-dir -r requirements.in
 
 FROM builder
 
