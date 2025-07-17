@@ -4,7 +4,7 @@ The LLM Judge detector integrates [vLLM Judge](https://github.com/trustyai-expla
 
 ### Local Setup
 
-1. **Start an OpenAI-compatible LLM server** (example with vLLM):
+1. **Start an OpenAI-compatible LLM server** (example with [vLLM](https://docs.vllm.ai/en/stable/serving/openai_compatible_server.html)):
 ```bash
 vllm serve Qwen/Qwen2.5-7B-Instruct --port 9090
 ```
