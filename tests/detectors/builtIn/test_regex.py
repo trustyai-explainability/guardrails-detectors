@@ -4,8 +4,8 @@ from fastapi.testclient import TestClient
 class TestRegexDetectors:
     @pytest.fixture
     def client(self):
-        from detectors.built_in.app import app
-        from detectors.built_in.regex_detectors import RegexDetectorRegistry
+        from guardrails_detectors.built_in.app import app
+        from guardrails_detectors.built_in.regex_detectors import RegexDetectorRegistry
 
         app.set_detector(RegexDetectorRegistry(), "regex")
 

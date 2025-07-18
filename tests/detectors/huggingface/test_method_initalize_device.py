@@ -5,7 +5,7 @@ import torch
 from unittest.mock import patch, MagicMock
 
 # relative imports
-from detectors.huggingface.detector import Detector
+from guardrails_detectors.huggingface.detector import Detector
 
 
 # tests to check the device initialization

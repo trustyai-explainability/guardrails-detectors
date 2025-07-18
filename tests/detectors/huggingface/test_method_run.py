@@ -5,8 +5,8 @@ import torch
 from unittest.mock import Mock, patch
 
 # relative imports
-from detectors.huggingface.detector import Detector, ContentAnalysisResponse
-from scheme import ContentAnalysisHttpRequest
+from guardrails_detectors.huggingface.detector import Detector, ContentAnalysisResponse
+from guardrails_detectors.huggingface.scheme import ContentAnalysisHttpRequest
 
 
 @pytest.fixture

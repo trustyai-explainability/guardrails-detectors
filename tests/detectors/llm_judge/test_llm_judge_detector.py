@@ -5,8 +5,8 @@ from unittest.mock import Mock, AsyncMock, patch
 from typing import Tuple
 
 # Import the detector components
-from detectors.llm_judge.detector import LLMJudgeDetector
-from detectors.llm_judge.scheme import (
+from guardrails_detectors.llm_judge.detector import LLMJudgeDetector
+from guardrails_detectors.llm_judge.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
 )

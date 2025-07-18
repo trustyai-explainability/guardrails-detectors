@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from transformers import PreTrainedTokenizer
 
 # relative imports
-from detectors.huggingface.detector import Detector
+from guardrails_detectors.huggingface.detector import Detector
 
 
 class TestGetProbabilities:

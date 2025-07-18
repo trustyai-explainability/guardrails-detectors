@@ -9,7 +9,7 @@ import yaml
 from typing import List, Optional
 
 from base_detector_registry import BaseDetectorRegistry
-from detectors.common.scheme import ContentAnalysisResponse
+from guardrails_detectors.common.scheme import ContentAnalysisResponse
 
 
 def is_valid_json(s: str) -> Optional[ContentAnalysisResponse]:

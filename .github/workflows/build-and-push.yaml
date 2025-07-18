@@ -6,11 +6,11 @@ on:
     tags:
       - v*
     paths:
-      - 'detectors/*'
+      - 'src/guardrails_detectors/*'
       - '.github/workflows/*'
   pull_request_target:
     paths:
-      - 'detectors/*'
+      - 'src/guardrails_detectors/*'
     types: [labeled, opened, synchronize, reopened]
 jobs:
   # Ensure that tests pass before publishing a new image.
@@ -80,16 +80,16 @@ jobs:
       - name: Put expiry date on CI-tagged image
         if:  env.BUILD_CONTEXT == 'ci'
         run: |
-          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
-          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.builtIn
+          echo 'LABEL quay.expires-after=7d#' >> src/guardrails_detectors/Dockerfile.hf
+          echo 'LABEL quay.expires-after=7d#' >> src/guardrails_detectors/Dockerfile.builtIn
       - name: Build image
-        run: docker build -t ${{ env.IMAGE_NAME }}:$TAG -f detectors/Dockerfile.hf detectors
+        run: docker build -t ${{ env.IMAGE_NAME }}:$TAG -f src/guardrails_detectors/Dockerfile.hf detectors
       - name: Log in to Quay
         run: docker login -u ${{ secrets.QUAY_ROBOT_USERNAME }} -p ${{ secrets.QUAY_ROBOT_SECRET }} quay.io
       - name: Push to Quay CI repo
         run: docker push ${{ env.IMAGE_NAME }}:$TAG
       - name: Build built-in detector image
-        run: docker build -t ${{ env.BUILTIN_IMAGE_NAME }}:$TAG -f detectors/Dockerfile.builtIn detectors
+        run: docker build -t ${{ env.BUILTIN_IMAGE_NAME }}:$TAG -f src/guardrails_detectors/Dockerfile.builtIn detectors
       - name: Push to Quay CI repo
         run: docker push ${{ env.BUILTIN_IMAGE_NAME }}:$TAG
 

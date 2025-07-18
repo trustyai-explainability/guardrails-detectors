@@ -6,8 +6,8 @@ import json
 class TestFileTypeDetectors:
     @pytest.fixture
     def client(self):
-        from detectors.built_in.app import app
-        from detectors.built_in.file_type_detectors import FileTypeDetectorRegistry
+        from guardrails_detectors.built_in.app import app
+        from guardrails_detectors.built_in.file_type_detectors import FileTypeDetectorRegistry
 
         app.set_detector(FileTypeDetectorRegistry(), "file_type")
 
