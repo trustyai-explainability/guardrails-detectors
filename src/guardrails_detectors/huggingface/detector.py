@@ -1,7 +1,4 @@
 import os
-import sys
-
-sys.path.insert(0, os.path.abspath(".."))
 import math
 import torch
 from transformers import (
@@ -10,8 +7,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForCausalLM,
 )
-from common.app import logger
-from scheme import (
+from guardrails_detectors.common.app import logger
+from .scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,

@@ -1,0 +1,77 @@
+[project]
+name = "guardrails-detectors"
+version = "0.1.0"
+description = "A collection of detector algorithms and microservices that are supported by the TrustyAI team."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0"  }
+authors = [
+    {name = "Mac Misiura", email = "mmisiura@redhat.com"},
+    {name = "Rob Geada", email = "rgeada@redhat.com"},
+    {name = "Rui Vieira", email = "rcardoso@redhat.com"},
+    {name = "Sai Chandra", email = "spandraj@redhat.com"},
+    {name = "TrustyAI team"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "License :: OSI Approved :: Apache Software License",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = ["AI", "LLM", "Guardrails", "Detectors", "Responsible AI", "TrustyAI", "Explainability"] 
+
+dependencies = [
+    "fastapi~=0.112.0",
+    "prometheus-fastapi-instrumentator >= 7.0.0",
+    "PyYAML~=6.0.2",
+    "uvicorn~=0.30.5",
+]
+
+[project.optional-dependencies]
+huggingface = [
+    "torch>=2.0.0",
+    "transformers~=4.50.0",
+]
+
+all = [
+    "guardrails-detectors[huggingface]"
+]
+
+dev = [
+    "build",
+    "coverage>=7.6.1",
+    "locust>=2.31.1",
+    "pre-commit>=3.8.0",
+    "pytest>=8.3.2",
+    "tls-test-tools"
+]
+
+[project.urls]
+Homepage = "https://github.com/trustyai-explainability/guardrails-detectors"
+Repository = "https://github.com/trustyai-explainability/guardrails-detectors.git"
+Issues = "https://github.com/trustyai-explainability/guardrails-detectors/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/guardrails_detectors"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "pyproject.toml",
+    "README.md",
+    "LICENSE"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_paths = ["src"]
+addopts = "-v"

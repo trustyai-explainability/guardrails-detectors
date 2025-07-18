@@ -1,12 +1,12 @@
 from fastapi import HTTPException
 from contextlib import asynccontextmanager
-from base_detector_registry import BaseDetectorRegistry
-from regex_detectors import RegexDetectorRegistry
-from file_type_detectors import FileTypeDetectorRegistry
+from .base_detector_registry import BaseDetectorRegistry
+from .regex_detectors import RegexDetectorRegistry
+from .file_type_detectors import FileTypeDetectorRegistry
 
 from prometheus_fastapi_instrumentator import Instrumentator
-from detectors.common.scheme import ContentAnalysisHttpRequest,  ContentsAnalysisResponse
-from detectors.common.app import DetectorBaseAPI as FastAPI
+from guardrails_detectors.common.scheme import ContentAnalysisHttpRequest,  ContentsAnalysisResponse
+from guardrails_detectors.common.app import DetectorBaseAPI as FastAPI
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
