@@ -3,8 +3,8 @@ import os
 import pytest
 
 # local imports
-from detectors.huggingface.scheme import ContentAnalysisResponse
-from detectors.huggingface.detector import Detector
+from guardrails_detectors.huggingface.scheme import ContentAnalysisResponse
+from guardrails_detectors.huggingface.detector import Detector
 
 
 @pytest.fixture

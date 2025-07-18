@@ -3,8 +3,8 @@ from typing import List, Dict, Any
 
 from vllm_judge import Judge, EvaluationResult, BUILTIN_METRICS
 from vllm_judge.exceptions import MetricNotFoundError
-from detectors.common.app import logger
-from detectors.llm_judge.scheme import (
+from guardrails_detectors.common.app import logger
+from guardrails_detectors.llm_judge.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,

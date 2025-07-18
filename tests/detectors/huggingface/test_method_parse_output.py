@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 from transformers import PreTrainedTokenizer
 
 # relative imports
-from detectors.huggingface.detector import Detector, ContentAnalysisResponse
+from guardrails_detectors.huggingface.detector import Detector, ContentAnalysisResponse
 
 
 class TestDetectorParseOutput:
