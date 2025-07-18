@@ -17,9 +17,9 @@ At the moment, the following detectors are supported:
 
 ## Building
 
-* `huggingface`: podman build -f detectors/Dockerfile.hf detectors
-* `llm_judge`: podman build -f detectors/Dockerfile.llm_judge detectors
-* `builtIn`: podman build -f detectors/Dockerfile.builtIn detectors
+* `huggingface`: podman build -f src/guardrails_detectors/Dockerfile.hf detectors
+* `llm_judge`: podman build -f src/guardrails_detectors/Dockerfile.llm_judge detectors
+* `builtIn`: podman build -f src/guardrails_detectors/Dockerfile.builtIn detectors
 
 ## Running locally
 * `builtIn`: podman run -p 8080:8080 $BUILT_IN_IMAGE
