@@ -8,9 +8,9 @@ import xgboost as xgb
 from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
-    ContentAnalysisHttpResponse,
 )
 import pickle as pkl
+from base_detector_registry import BaseDetectorRegistry
 
 try:
     from common.app import logger
@@ -21,7 +21,7 @@ except ImportError:
 class Detector:
     def __init__(self):
         # initialize the detector
-        model_files_path = os.path.abspath(s.path.join(os.sep, "app", "model_artifacts"))
+        model_files_path = os.path.abspath(os.path.join(os.sep, "app", "model_artifacts"))
         if not os.path.exists(model_files_path):
             model_files_path = os.path.join("build", "model_artifacts")
         logger.info(model_files_path)
@@ -39,7 +39,7 @@ class Detector:
             self.batch_size = 8
         logger.info("Detector initialized.")
 
-    def run(self, request: ContentAnalysisHttpRequest) -> ContentsAnalysisHttpResponse:
+    def run(self, request: ContentAnalysisHttpRequest) -> ContentAnalysisResponse:
         if hasattr(request, "detection_type") and request.detection_type != "spamCheck":
             logger.warning(f"Unsupported detection type: {request.detection_type}")
 

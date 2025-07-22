@@ -5,12 +5,10 @@ from typing import Annotated
 
 from fastapi import Header
 from prometheus_fastapi_instrumentator import Instrumentator
-
 sys.path.insert(0, os.path.abspath(".."))
 
+from common.app import DetectorBaseAPI as FastAPI
 from detector import Detector
-
-from detectors.common.app import DetectorBaseAPI as FastAPI
 from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,

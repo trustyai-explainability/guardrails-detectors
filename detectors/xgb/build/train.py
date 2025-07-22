@@ -70,7 +70,7 @@ if __name__ == '__main__':
                     subsample=grid_search.best_params_['subsample'],
                     random_state=42
         )
-        clf.fit(X, y)
+        clf.fit(X_vec, y)
 
         print(f"Saving training artifacts to {artifact_path}...")
         pickle.dump(vectorizer, open(f'{artifact_path}/vectorizer.pkl', 'wb'))
