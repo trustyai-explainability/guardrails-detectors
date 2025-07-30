@@ -1,0 +1,3 @@
+vllm-judge[jinja2]==0.1.6
+pyyaml==6.0.2
+guardrails-detectors-common>=0.1.1 
