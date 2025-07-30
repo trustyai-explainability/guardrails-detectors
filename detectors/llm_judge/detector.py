@@ -3,8 +3,8 @@ from typing import List, Dict, Any
 
 from vllm_judge import Judge, EvaluationResult, BUILTIN_METRICS
 from vllm_judge.exceptions import MetricNotFoundError
-from detectors.common.app import logger
-from detectors.common.scheme import (
+from guardrails_detectors_common import logger
+from guardrails_detectors_common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
@@ -59,9 +59,9 @@ class LLMJudgeDetector:
             judge_metric = BUILTIN_METRICS[params["metric"]]
             if judge_metric.scale is None:
                 params["scale"] = (0, 1) # Default to 0-1 scale
-        
+
         return params
-    
+
     def _get_score(self, result: EvaluationResult) -> float:
         """
         Get the score from the evaluation result.
@@ -74,11 +74,11 @@ class LLMJudgeDetector:
     async def evaluate_single_content(self, content: str, params: Dict[str, Any]) -> ContentAnalysisResponse:
         """
         Evaluate a single piece of content using the specified metric.
-        
+
         Args:
             content: Text content to evaluate
             params: vLLM Judge parameters for the evaluation
-            
+
         Returns:
             ContentAnalysisResponse with evaluation results
         """
@@ -94,7 +94,7 @@ class LLMJudgeDetector:
             **evaluation_params
         )
         
-        # Convert to response format. 
+        # Convert to response format.
         score: float = self._get_score(result)
         
         return ContentAnalysisResponse(
@@ -135,7 +135,7 @@ class LLMJudgeDetector:
             prompt: Prompt to the LLM
             generated_text: Generated text from the LLM
             params: vLLM Judge parameters for the evaluation
-            
+
         Returns:
             GenerationAnalysisResponse: The response for the generation analysis
         """
@@ -149,9 +149,9 @@ class LLMJudgeDetector:
         result: EvaluationResult = await self.judge.evaluate(
             **evaluation_params
         )
-        
+
         score: float = self._get_score(result)
-        
+
         return GenerationAnalysisResponse(
             detection=str(result.decision),
             detection_type="llm_judge",
@@ -166,14 +166,14 @@ class LLMJudgeDetector:
 
         Args:
             request: Input request containing prompt, generated text and optional metric to analyze
-            
+
         Returns:
             GenerationAnalysisResponse: The response for the generation analysis
         """
         return await self.evaluate_single_generation(prompt=request.prompt,
                                                      generated_text=request.generated_text,
                                                      params=request.detector_params)
-    
+
     async def close(self):
         """Close the judge client."""
         if self.judge:

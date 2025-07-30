@@ -1,15 +1,12 @@
-import os
-import sys
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Header
 from prometheus_fastapi_instrumentator import Instrumentator
-sys.path.insert(0, os.path.abspath(".."))
 
-from common.app import DetectorBaseAPI as FastAPI
-from detector import Detector
-from common.scheme import (
+from guardrails_detectors_common import DetectorBaseAPI as FastAPI
+from .detector import Detector
+from  guardrails_detectors_common.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,
     Error,

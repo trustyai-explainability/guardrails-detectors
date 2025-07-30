@@ -4,7 +4,7 @@ from typing import Annotated, Dict
 from fastapi import Header, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from detectors.common.app import DetectorBaseAPI as FastAPI
+from guardrails_detectors_common import DetectorBaseAPI as FastAPI
 from detectors.llm_judge.detector import LLMJudgeDetector
 from detectors.common.scheme import (
     ContentAnalysisHttpRequest,

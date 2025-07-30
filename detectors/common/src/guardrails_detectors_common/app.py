@@ -8,8 +8,6 @@ import yaml
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-sys.path.insert(0, os.path.abspath(".."))
-
 import logging
 
 from fastapi import FastAPI, status

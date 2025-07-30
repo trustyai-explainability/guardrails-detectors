@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from detectors.common.scheme import ContentAnalysisResponse
+from guardrails_detectors_common import ContentAnalysisResponse
 
 class BaseDetectorRegistry(ABC):
     def __init__(self):
