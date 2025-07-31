@@ -13,7 +13,7 @@ This package provides components used by all guardrails detector packages:
 ## Installation
 
 ```bash
-pip install guardrails-detectors-common
+pip install guardrails-detector-common
 ```
 
 ## License

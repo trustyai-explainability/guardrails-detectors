@@ -26,7 +26,7 @@ classifiers = [
 ]
 keywords = ["AI", "LLM", "Guardrails", "Detectors", "Responsible AI", "TrustyAI", "Huggingface", "Transformers"]
 dependencies = [
-    "guardrails-detectors-common>=0.1.1",
+    "guardrails-detector-common>=0.1.1",
     "transformers>=4.50.0",
     "torch>=1.13.0",
 ]

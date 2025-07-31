@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import Header
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from guardrails_detectors_common import DetectorBaseAPI as FastAPI
+from guardrails_detector_common import DetectorBaseAPI as FastAPI
 from .detector import Detector
 from  guardrails_detectors_common.scheme import (
     ContentAnalysisHttpRequest,

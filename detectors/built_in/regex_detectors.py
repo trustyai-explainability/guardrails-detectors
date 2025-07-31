@@ -2,7 +2,7 @@ import re
 from http.client import HTTPException
 from typing import List
 from base_detector_registry import BaseDetectorRegistry
-from guardrails_detectors_common import ContentAnalysisResponse
+from guardrails_detector_common import ContentAnalysisResponse
 
 
 def email_address_detector(string: str) -> List[ContentAnalysisResponse]:
