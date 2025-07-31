@@ -1,0 +1,4 @@
+-e ../common/
+markdown==3.8.2
+jsonschema==4.24.0
+xmlschema==4.1.0

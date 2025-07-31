@@ -1,1 +1,2 @@
 transformers==4.50.0
+guardrails-detector-common>=0.1.0
