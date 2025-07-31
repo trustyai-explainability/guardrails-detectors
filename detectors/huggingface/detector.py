@@ -11,7 +11,7 @@ from transformers import (
     AutoModelForCausalLM,
 )
 from common.app import logger
-from scheme import (
+from common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
@@ -169,15 +169,6 @@ class Detector:
         return probabilities
 
     def process_causal_lm(self, text):
-        """
-        Process text using a causal language model.
-
-        Args:
-            text (str): Input text.
-
-        Returns:
-            List[ContentAnalysisResponse]: List of content analysis results.
-        """
         messages = [{"role": "user", "content": text}]
         content_analyses = []
         for risk_name in self.risk_names:
@@ -205,26 +196,17 @@ class Detector:
                     detection=self.model_name,
                     detection_type="causal_lm",
                     score=prob_of_risk,
-                    sequence_classification=risk_name,
-                    sequence_probability=prob_of_risk,
-                    token_classifications=None,
-                    token_probabilities=None,
                     text=text,
                     evidences=[],
                 )
             )
         return content_analyses
 
-    def process_sequence_classification(self, text):
-        """
-        Process text using a sequence classification model.
-
-        Args:
-            text (str): Input text.
-
-        Returns:
-            List[ContentAnalysisResponse]: List of content analysis results.
-        """
+    def process_sequence_classification(self, text, detector_params=None, threshold=None):
+        detector_params = detector_params or {}
+        if threshold is None:
+            threshold = detector_params.get("threshold", 0.5)
+        non_trigger_labels = set(detector_params.get("non_trigger_labels", []))
         content_analyses = []
         tokenized = self.tokenizer(
             text,
@@ -238,26 +220,21 @@ class Detector:
 
         with torch.no_grad():
             logits = self.model(**tokenized).logits
-            prediction = torch.argmax(logits, dim=1).detach().cpu().numpy().tolist()[0]
-            prediction_labels = self.model.config.id2label[prediction]
-            probability = (
-                torch.softmax(logits, dim=1).detach().cpu().numpy()[:, 1].tolist()[0]
-            )
-            content_analyses.append(
-                ContentAnalysisResponse(
-                    start=0,
-                    end=len(text),
-                    detection=self.model_name,
-                    detection_type="sequence_classification",
-                    score=probability,
-                    sequence_classification=prediction_labels,
-                    sequence_probability=probability,
-                    token_classifications=None,
-                    token_probabilities=None,
-                    text=text,
-                    evidences=[],
-                )
-            )
+            probabilities = torch.softmax(logits, dim=1).detach().cpu().numpy()[0]
+            for idx, prob in enumerate(probabilities):
+                label = self.model.config.id2label[idx]
+                if prob >= threshold and label not in non_trigger_labels:
+                    content_analyses.append(
+                        ContentAnalysisResponse(
+                            start=0,
+                            end=len(text),
+                            detection=getattr(self.model.config, "problem_type", "sequence_classification"),
+                            detection_type=label,
+                            score=prob,
+                            text=text,
+                            evidences=[],
+                        )
+                    )
         return content_analyses
 
     def run(self, input: ContentAnalysisHttpRequest) -> ContentsAnalysisResponse:
@@ -275,7 +252,9 @@ class Detector:
             if self.is_causal_lm:
                 analyses = self.process_causal_lm(text)
             elif self.is_sequence_classifier:
-                analyses = self.process_sequence_classification(text)
+                analyses = self.process_sequence_classification(
+                    text, detector_params=getattr(input, "detector_params", None)
+                )
             else:
                 raise ValueError("Unsupported model type for analysis.")
             contents_analyses.append(analyses)
