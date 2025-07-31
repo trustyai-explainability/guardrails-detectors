@@ -22,7 +22,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["AI", "LLM", "Guardrails", "Detectors", "Responsible AI", "TrustyAI", "Huggingface", "Transformers"]
+keywords = ["AI", "LLM", "Guardrails", "Responsible AI", "TrustyAI", "Huggingface", "Transformers"]
 dependencies = [
     "guardrails-detector-common>=0.1.0",
     "transformers>=4.50.0",
