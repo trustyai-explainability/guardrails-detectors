@@ -2,6 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
+import json
 import math
 import torch
 from transformers import (
@@ -17,6 +18,22 @@ from common.scheme import (
     ContentsAnalysisResponse,
 )
 import gc
+
+def _parse_safe_labels_env():
+    if os.environ.get("SAFE_LABELS"):
+        try:
+            parsed = json.loads(os.environ.get("SAFE_LABELS"))
+            if isinstance(parsed, (int, str)):
+                logger.info(f"SAFE_LABELS env var: {parsed}")
+                return [parsed]
+            if isinstance(parsed, list) and all(isinstance(x, (int, str)) for x in parsed):
+                logger.info(f"SAFE_LABELS env var: {parsed}")
+                return parsed
+        except Exception as e:
+            logger.warning(f"Could not parse SAFE_LABELS env var: {e}. Defaulting to [0].")
+            return [0]
+    logger.info("SAFE_LABELS env var not set: defaulting to [0].")
+    return [0]
 
 class Detector:
     risk_names = [
@@ -37,6 +54,7 @@ class Detector:
         self.model = None
         self.cuda_device = None
         self.model_name = "unknown"
+        self.safe_labels = _parse_safe_labels_env()
 
         model_files_path = os.environ.get("MODEL_DIR")
         if not model_files_path:
@@ -206,7 +224,9 @@ class Detector:
         detector_params = detector_params or {}
         if threshold is None:
             threshold = detector_params.get("threshold", 0.5)
-        non_trigger_labels = set(detector_params.get("non_trigger_labels", []))
+        # Merge safe_labels from env and request
+        request_safe_labels = set(detector_params.get("safe_labels", []))
+        all_safe_labels = set(self.safe_labels) | request_safe_labels 
         content_analyses = []
         tokenized = self.tokenizer(
             text,
@@ -223,7 +243,12 @@ class Detector:
             probabilities = torch.softmax(logits, dim=1).detach().cpu().numpy()[0]
             for idx, prob in enumerate(probabilities):
                 label = self.model.config.id2label[idx]
-                if prob >= threshold and label not in non_trigger_labels:
+                # Exclude by index or label name
+                if (
+                    prob >= threshold
+                    and idx not in all_safe_labels
+                    and label not in all_safe_labels
+                ):
                     content_analyses.append(
                         ContentAnalysisResponse(
                             start=0,
@@ -260,10 +285,8 @@ class Detector:
             contents_analyses.append(analyses)
         return contents_analyses
 
-
     def close(self) -> None:
         """Clean up model and tokenizer resources."""
-        
         if self.model:
             if hasattr(self.model, 'to') and hasattr(self.model, 'device') and self.model.device.type != "cpu":
                 self.model = self.model.to(torch.device("cpu"))
