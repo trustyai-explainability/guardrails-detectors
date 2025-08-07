@@ -5,7 +5,7 @@ import os
 from unittest.mock import patch, AsyncMock
 
 from detectors.llm_judge.detector import LLMJudgeDetector
-from detectors.llm_judge.scheme import ContentAnalysisHttpRequest, GenerationAnalysisResponse
+from detectors.common.scheme import ContentAnalysisHttpRequest, GenerationAnalysisResponse
 from vllm_judge import EvaluationResult
 
 

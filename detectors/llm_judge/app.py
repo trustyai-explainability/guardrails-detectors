@@ -6,7 +6,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from detectors.common.app import DetectorBaseAPI as FastAPI
 from detectors.llm_judge.detector import LLMJudgeDetector
-from detectors.llm_judge.scheme import (
+from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,
     MetricsListResponse,
@@ -52,7 +52,7 @@ async def detector_content_analysis_handler(
     detector: LLMJudgeDetector = app.get_detector()
     if not detector:
         raise HTTPException(status_code=503, detail="Detector not found")
-    return ContentsAnalysisResponse(root=await detector.run(request))
+    return ContentsAnalysisResponse(root=await detector.analyze_content(request))
 
 @app.post(
     "/api/v1/text/generation",

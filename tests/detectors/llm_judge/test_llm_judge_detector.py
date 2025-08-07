@@ -6,7 +6,7 @@ from typing import Tuple
 
 # Import the detector components
 from detectors.llm_judge.detector import LLMJudgeDetector
-from detectors.llm_judge.scheme import (
+from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     GenerationAnalysisHttpRequest,
