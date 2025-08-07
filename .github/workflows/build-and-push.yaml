@@ -54,7 +54,7 @@ jobs:
           echo "SHA: ${{ github.event.pull_request.head.sha }}"
           echo "MAIN IMAGE AT: ${{ vars.QUAY_RELEASE_REPO }}:latest"
           echo "CI IMAGE AT: quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}"
-          echo "Built-In Detector CI IMAGE AT: quay.io/trustyai/builtin-detector-ci:${{ github.event.pull_request.head.sha }}"
+          echo "Built-In Detector CI IMAGE AT: quay.io/trustyai/guardrails-detector-built-in-ci:${{ github.event.pull_request.head.sha }}"
 
       # Set environments depending on context
       - name: Set CI environment
@@ -62,19 +62,19 @@ jobs:
         run: |
           echo "TAG=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
-          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/builtin-detector-ci" >> $GITHUB_ENV
+          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in-ci" >> $GITHUB_ENV
       - name: Set main-branch environment
         if:  env.BUILD_CONTEXT == 'main'
         run: |
           echo "TAG=latest" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
-          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/builtin-detector" >> $GITHUB_ENV
+          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
       - name: Set tag environment
         if: env.BUILD_CONTEXT == 'tag'
         run: |
           echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
-          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/builtin-detector" >> $GITHUB_ENV
+          echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
       #
       # Run docker commands
       - name: Put expiry date on CI-tagged image
@@ -113,7 +113,7 @@ jobs:
             PR image build completed successfully!
             
             📦 [PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
-            📦 [PR image](https://quay.io/trustyai/builtin-detector-ci?tab=tags): `quay.io/trustyai/builtin-detector-ci:${{ github.event.pull_request.head.sha }}`
+            📦 [PR image](https://quay.io/trustyai/guardrails-detector-built-in-ci?tab=tags): `quay.io/trustyai/guardrails-detector-built-in-ci:${{ github.event.pull_request.head.sha }}`
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
@@ -136,11 +136,13 @@ jobs:
           exit-code: '0'
           ignore-unfixed: false
           vuln-type: 'os,library'
-      - name: Update Security tab
+      - name: Update Security tab - Huggingface
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
-      - name: Update Security tab
+          category: huggingface
+      - name: Update Security tab - Built-in
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results-built-in.sarif'
+          category: built-in

@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(".."))
 
 from common.app import DetectorBaseAPI as FastAPI
 from detector import Detector
-from scheme import (
+from common.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,
     Error,
