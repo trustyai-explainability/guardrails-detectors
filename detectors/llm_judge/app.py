@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Annotated, Dict
 
-from fastapi import Header
+from fastapi import Header, HTTPException
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from detectors.common.app import DetectorBaseAPI as FastAPI
@@ -13,20 +13,18 @@ from detectors.llm_judge.scheme import (
     Error,
 )
 
-detector_objects: Dict[str, LLMJudgeDetector] = {}
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management."""
-    try:
-        detector_objects["detector"] = LLMJudgeDetector()
-        yield
-    finally:
-        # Clean up resources
-        if "detector" in detector_objects:
-            await detector_objects["detector"].close()
-        detector_objects.clear()
+
+    app.set_detector(LLMJudgeDetector())
+    yield
+    # Clean up resources
+    detector: LLMJudgeDetector = app.get_detector()
+    if detector and hasattr(detector, 'close'):
+        await detector.close()
+    app.cleanup_detector()
 
 
 app = FastAPI(lifespan=lifespan, dependencies=[])
@@ -49,7 +47,10 @@ async def detector_unary_handler(
     detector_id: Annotated[str, Header(example="llm_judge_safety")],
 ):
     """Analyze content using LLM-as-Judge evaluation."""
-    return ContentsAnalysisResponse(root=await detector_objects["detector"].run(request))
+    detector: LLMJudgeDetector = app.get_detector()
+    if not detector:
+        raise HTTPException(status_code=503, detail="Detector not found")
+    return ContentsAnalysisResponse(root=await detector.run(request))
 
 
 @app.get(
@@ -62,9 +63,9 @@ async def detector_unary_handler(
 )
 async def list_metrics():
     """List all available evaluation metrics."""
-    detector = detector_objects.get("detector")
+    detector: LLMJudgeDetector = app.get_detector()
     if not detector:
-        return {"metrics": [], "total": 0}
+        raise HTTPException(status_code=503, detail="Detector not found")
     
     metrics = detector.list_available_metrics()
     return MetricsListResponse(metrics=metrics, total=len(metrics))

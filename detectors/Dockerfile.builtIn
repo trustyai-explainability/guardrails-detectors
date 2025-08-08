@@ -4,7 +4,6 @@ RUN microdnf update -y && \
         python-pip python-devel && \
     pip install --upgrade --no-cache-dir pip wheel && \
     microdnf clean all
-RUN pip install --no-cache-dir torch
 
 # FROM icr.io/fm-stack/ubi9-minimal-py39-torch as builder
 FROM base as builder
@@ -12,7 +11,7 @@ FROM base as builder
 COPY ./common/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./huggingface/requirements.txt .
+COPY ./built_in/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM builder
@@ -20,11 +19,14 @@ FROM builder
 WORKDIR /app
 ARG CACHEBUST=1
 RUN echo "$CACHEBUST"
-COPY ./common /common
-COPY ./huggingface/app.py /app
-COPY ./huggingface/detector.py /app
+COPY ./common /app/detectors/common
+COPY ./built_in/* /app
 
-EXPOSE 8000
-CMD ["uvicorn", "app:app", "--workers", "4", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
+EXPOSE 8080
 
-# gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+# for backwards compatibility with existing k8s deployment configs
+RUN mkdir /app/bin &&\
+     echo '#!/bin/bash' > /app/bin/regex-detector &&\
+    echo "uvicorn app:app --workers 4 --host 0.0.0.0 --port 8080 --log-config /app/detectors/common/log_conf.yaml" >> /app/bin/regex-detector &&\
+    chmod +x /app/bin/regex-detector
+CMD ["/app/bin/regex-detector"]

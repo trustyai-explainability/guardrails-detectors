@@ -2,6 +2,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
+import json
 import math
 import torch
 from transformers import (
@@ -11,12 +12,28 @@ from transformers import (
     AutoModelForCausalLM,
 )
 from common.app import logger
-from scheme import (
+from common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
 )
+import gc
 
+def _parse_safe_labels_env():
+    if os.environ.get("SAFE_LABELS"):
+        try:
+            parsed = json.loads(os.environ.get("SAFE_LABELS"))
+            if isinstance(parsed, (int, str)):
+                logger.info(f"SAFE_LABELS env var: {parsed}")
+                return [parsed]
+            if isinstance(parsed, list) and all(isinstance(x, (int, str)) for x in parsed):
+                logger.info(f"SAFE_LABELS env var: {parsed}")
+                return parsed
+        except Exception as e:
+            logger.warning(f"Could not parse SAFE_LABELS env var: {e}. Defaulting to [0].")
+            return [0]
+    logger.info("SAFE_LABELS env var not set: defaulting to [0].")
+    return [0]
 
 class Detector:
     risk_names = [
@@ -37,6 +54,7 @@ class Detector:
         self.model = None
         self.cuda_device = None
         self.model_name = "unknown"
+        self.safe_labels = _parse_safe_labels_env()
 
         model_files_path = os.environ.get("MODEL_DIR")
         if not model_files_path:
@@ -169,15 +187,6 @@ class Detector:
         return probabilities
 
     def process_causal_lm(self, text):
-        """
-        Process text using a causal language model.
-
-        Args:
-            text (str): Input text.
-
-        Returns:
-            List[ContentAnalysisResponse]: List of content analysis results.
-        """
         messages = [{"role": "user", "content": text}]
         content_analyses = []
         for risk_name in self.risk_names:
@@ -205,26 +214,19 @@ class Detector:
                     detection=self.model_name,
                     detection_type="causal_lm",
                     score=prob_of_risk,
-                    sequence_classification=risk_name,
-                    sequence_probability=prob_of_risk,
-                    token_classifications=None,
-                    token_probabilities=None,
                     text=text,
                     evidences=[],
                 )
             )
         return content_analyses
 
-    def process_sequence_classification(self, text):
-        """
-        Process text using a sequence classification model.
-
-        Args:
-            text (str): Input text.
-
-        Returns:
-            List[ContentAnalysisResponse]: List of content analysis results.
-        """
+    def process_sequence_classification(self, text, detector_params=None, threshold=None):
+        detector_params = detector_params or {}
+        if threshold is None:
+            threshold = detector_params.get("threshold", 0.5)
+        # Merge safe_labels from env and request
+        request_safe_labels = set(detector_params.get("safe_labels", []))
+        all_safe_labels = set(self.safe_labels) | request_safe_labels 
         content_analyses = []
         tokenized = self.tokenizer(
             text,
@@ -238,26 +240,26 @@ class Detector:
 
         with torch.no_grad():
             logits = self.model(**tokenized).logits
-            prediction = torch.argmax(logits, dim=1).detach().cpu().numpy().tolist()[0]
-            prediction_labels = self.model.config.id2label[prediction]
-            probability = (
-                torch.softmax(logits, dim=1).detach().cpu().numpy()[:, 1].tolist()[0]
-            )
-            content_analyses.append(
-                ContentAnalysisResponse(
-                    start=0,
-                    end=len(text),
-                    detection=self.model_name,
-                    detection_type="sequence_classification",
-                    score=probability,
-                    sequence_classification=prediction_labels,
-                    sequence_probability=probability,
-                    token_classifications=None,
-                    token_probabilities=None,
-                    text=text,
-                    evidences=[],
-                )
-            )
+            probabilities = torch.softmax(logits, dim=1).detach().cpu().numpy()[0]
+            for idx, prob in enumerate(probabilities):
+                label = self.model.config.id2label[idx]
+                # Exclude by index or label name
+                if (
+                    prob >= threshold
+                    and idx not in all_safe_labels
+                    and label not in all_safe_labels
+                ):
+                    content_analyses.append(
+                        ContentAnalysisResponse(
+                            start=0,
+                            end=len(text),
+                            detection=getattr(self.model.config, "problem_type", "sequence_classification"),
+                            detection_type=label,
+                            score=prob,
+                            text=text,
+                            evidences=[],
+                        )
+                    )
         return content_analyses
 
     def run(self, input: ContentAnalysisHttpRequest) -> ContentsAnalysisResponse:
@@ -275,8 +277,25 @@ class Detector:
             if self.is_causal_lm:
                 analyses = self.process_causal_lm(text)
             elif self.is_sequence_classifier:
-                analyses = self.process_sequence_classification(text)
+                analyses = self.process_sequence_classification(
+                    text, detector_params=getattr(input, "detector_params", None)
+                )
             else:
                 raise ValueError("Unsupported model type for analysis.")
             contents_analyses.append(analyses)
         return contents_analyses
+
+    def close(self) -> None:
+        """Clean up model and tokenizer resources."""
+        if self.model:
+            if hasattr(self.model, 'to') and hasattr(self.model, 'device') and self.model.device.type != "cpu":
+                self.model = self.model.to(torch.device("cpu"))
+            self.model = None
+
+        if self.tokenizer:
+            self.tokenizer = None
+
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()

@@ -34,6 +34,7 @@ app = FastAPI(
 class DetectorBaseAPI(FastAPI):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.state.detectors = {}
         self.add_exception_handler(
             RequestValidationError, self.validation_exception_handler
         )
@@ -94,6 +95,21 @@ class DetectorBaseAPI(FastAPI):
             content={"code": exc.status_code, "message": exc.detail},
         )
 
+    def set_detector(self, detector, detector_name="default") -> None:
+        """Store detector in app.state"""
+        self.state.detectors[detector_name] = detector
+        
+    def get_detector(self, detector_name="default"):
+        """Retrieve detector from app.state"""
+        return self.state.detectors.get(detector_name)
+
+    def get_all_detectors(self) -> dict:
+        """Retrieve all detectors from app.state"""
+        return self.state.detectors
+    
+    def cleanup_detector(self) -> None:
+        """Clean up detector resources"""
+        self.state.detectors.clear()
 
 async def health():
     return "ok"
@@ -107,7 +123,7 @@ def main(app):
     config = {
         "server": {
             "host": "0.0.0.0",
-            "port": "8000",
+            "port": "8080",
             "workers": 1,
             "limit_concurrency": 1000,
             "timeout_keep_alive": 30,
