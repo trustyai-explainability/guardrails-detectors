@@ -20,6 +20,12 @@ jobs:
       contents: read
       pull-requests: write
       security-events: write
+    env:
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      GITHUB_REF_NAME: ${{ github.ref_name }}
+      QUAY_RELEASE_REPO: ${{ vars.QUAY_RELEASE_REPO }}
+      GITHUB_REF: ${{ github.ref }}
+      GITHUB_HEAD_REF: ${{ github.head_ref }}
     steps: # Assign context variable for various action contexts (tag, main, CI)
       - name: Assigning CI context
         if: github.head_ref != '' && github.head_ref != 'main' && !startsWith(github.ref, 'refs/tags/v')
@@ -47,11 +53,6 @@ jobs:
       #
       # Print variables for debugging
       - name: Log reference variables
-        env:
-          GITHUB_REF: ${{ github.ref }}
-          GITHUB_HEAD_REF: ${{ github.head_ref }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          QUAY_RELEASE_REPO: ${{ vars.QUAY_RELEASE_REPO }}
         run: |
           echo "CONTEXT: $BUILD_CONTEXT"
           echo "GITHUB.REF: $GITHUB_REF"
@@ -65,42 +66,32 @@ jobs:
       # Set environments depending on context
       - name: Set CI environment
         if:  env.BUILD_CONTEXT == 'ci'
-        env:
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "TAG=$PR_HEAD_SHA" >> $GITHUB_ENV
           echo "IMAGE_NAME=quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in-ci" >> $GITHUB_ENV
           echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge-ci" >> $GITHUB_ENV
+          echo "EXPIRY_LABEL=--label quay.expires-after=7d" >> $GITHUB_ENV
       - name: Set main-branch environment
         if:  env.BUILD_CONTEXT == 'main'
-        env:
-          QUAY_RELEASE_REPO: ${{ vars.QUAY_RELEASE_REPO }}
         run: |
           echo "TAG=latest" >> $GITHUB_ENV
           echo "IMAGE_NAME=$QUAY_RELEASE_REPO" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
           echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge" >> $GITHUB_ENV
+          echo "EXPIRY_LABEL=" >> $GITHUB_ENV
       - name: Set tag environment
         if: env.BUILD_CONTEXT == 'tag'
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          QUAY_RELEASE_REPO: ${{ vars.QUAY_RELEASE_REPO }}
         run: |
           echo "TAG=$GITHUB_REF_NAME" >> $GITHUB_ENV
           echo "IMAGE_NAME=$QUAY_RELEASE_REPO" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
           echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge" >> $GITHUB_ENV
+          echo "EXPIRY_LABEL=" >> $GITHUB_ENV
       #
       # Run docker commands
-      - name: Put expiry date on CI-tagged image
-        if:  env.BUILD_CONTEXT == 'ci'
-        run: |
-          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
-          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.builtIn
-          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.judge
       - name: Build image
-        run: docker build -t "$IMAGE_NAME:$TAG" -f detectors/Dockerfile.hf detectors
+        run: docker build -t "$IMAGE_NAME:$TAG" $EXPIRY_LABEL -f detectors/Dockerfile.hf detectors
       - name: Log in to Quay
         env:
           QUAY_ROBOT_USERNAME: ${{ secrets.QUAY_ROBOT_USERNAME }}
@@ -109,11 +100,11 @@ jobs:
       - name: Push to Quay CI repo
         run: docker push "$IMAGE_NAME:$TAG"
       - name: Build built-in detector image
-        run: docker build -t "$BUILTIN_IMAGE_NAME:$TAG" -f detectors/Dockerfile.builtIn detectors
+        run: docker build -t "$BUILTIN_IMAGE_NAME:$TAG" $EXPIRY_LABEL -f detectors/Dockerfile.builtIn detectors
       - name: Push to Quay CI repo
         run: docker push "$BUILTIN_IMAGE_NAME:$TAG"
       - name: Build LLM Judge detector image
-        run: docker build -t "$LLM_JUDGE_IMAGE_NAME:$TAG" -f detectors/Dockerfile.judge detectors
+        run: docker build -t "$LLM_JUDGE_IMAGE_NAME:$TAG" $EXPIRY_LABEL -f detectors/Dockerfile.judge detectors
       - name: Push LLM Judge image to Quay CI repo
         run: docker push "$LLM_JUDGE_IMAGE_NAME:$TAG"
       # Leave comment
@@ -128,8 +119,6 @@ jobs:
       - uses: peter-evans/create-or-update-comment@v4
         if:  env.BUILD_CONTEXT == 'ci'
         name: Generate/update success message comment
-        env:
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
@@ -137,9 +126,9 @@ jobs:
           body: |
             PR image build completed successfully!
             
-            📦 [PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:$PR_HEAD_SHA`
-            📦 [PR image](https://quay.io/trustyai/guardrails-detector-built-in-ci?tab=tags): `quay.io/trustyai/guardrails-detector-built-in-ci:$PR_HEAD_SHA`
-            📦 [PR image](https://quay.io/trustyai/guardrails-detector-llm-judge-ci?tab=tags): `quay.io/trustyai/guardrails-detector-llm-judge-ci:$PR_HEAD_SHA`
+            📦 [Huggingface PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:$PR_HEAD_SHA`
+            📦 [Built-in PR image](https://quay.io/trustyai/guardrails-detector-built-in-ci?tab=tags): `quay.io/trustyai/guardrails-detector-built-in-ci:$PR_HEAD_SHA`
+            📦 [LLM Judge PR image](https://quay.io/trustyai/guardrails-detector-llm-judge-ci?tab=tags): `quay.io/trustyai/guardrails-detector-llm-judge-ci:$PR_HEAD_SHA`
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
