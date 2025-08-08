@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, RootModel
 
@@ -134,6 +134,7 @@ class ContentAnalysisResponse(BaseModel):
         description="Optional field providing evidences for the provided detection",
         default=None,
     )
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata from evaluation")
 
 
 class ContentsAnalysisResponse(RootModel):
@@ -145,3 +146,27 @@ class ContentsAnalysisResponse(RootModel):
 class Error(BaseModel):
     code: int
     message: str
+
+class MetricsListResponse(BaseModel):
+    """Response for listing available metrics."""
+    metrics: List[str] = Field(description="List of available metric names")
+    total: int = Field(description="Total number of available metrics")
+
+class GenerationAnalysisHttpRequest(BaseModel):
+    prompt: str = Field(description="Prompt is the user input to the LLM", example="What do you think about the future of AI?")
+    generated_text: str = Field(description="Generated response from the LLM", example="The future of AI is bright but we need to be careful about the risks.")
+    detector_params: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, 
+        description="Detector parameters for evaluation (e.g., metric, criteria, etc.)",
+        example={"metric": "safety"}
+    )
+
+class GenerationAnalysisResponse(BaseModel):
+    detection: str = Field(example="safe")
+    detection_type: str = Field(example="llm_judge")
+    score: float = Field(example=0.8)
+    evidences: Optional[List[EvidenceObj]] = Field(
+        description="Optional field providing evidences for the provided detection",
+        default=[],
+    )
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional metadata from evaluation")
