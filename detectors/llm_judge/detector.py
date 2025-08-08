@@ -68,6 +68,7 @@ class LLMJudgeDetector:
         """
         if isinstance(result.decision, (int, float)) or result.score is not None:
             return float(result.score if result.score is not None else result.decision)
+        logger.warning(f"Score is not a number: '{result.score}'. Defaulting to 0.0")
         return 0.0 # FIXME: default to 0 because of non-optional field in schema
 
     async def evaluate_single_content(self, content: str, params: Dict[str, Any]) -> ContentAnalysisResponse:
