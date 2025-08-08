@@ -55,6 +55,7 @@ jobs:
           echo "MAIN IMAGE AT: ${{ vars.QUAY_RELEASE_REPO }}:latest"
           echo "CI IMAGE AT: quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}"
           echo "Built-In Detector CI IMAGE AT: quay.io/trustyai/guardrails-detector-built-in-ci:${{ github.event.pull_request.head.sha }}"
+          echo "LLM Judge CI IMAGE AT: quay.io/trustyai/guardrails-detector-llm-judge-ci:${{ github.event.pull_request.head.sha }}"
 
       # Set environments depending on context
       - name: Set CI environment
@@ -63,18 +64,21 @@ jobs:
           echo "TAG=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=quay.io/trustyai/guardrails-detector-huggingface-runtime-ci" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in-ci" >> $GITHUB_ENV
+          echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge-ci" >> $GITHUB_ENV
       - name: Set main-branch environment
         if:  env.BUILD_CONTEXT == 'main'
         run: |
           echo "TAG=latest" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
+          echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge" >> $GITHUB_ENV
       - name: Set tag environment
         if: env.BUILD_CONTEXT == 'tag'
         run: |
           echo "TAG=${{ github.ref_name }}" >> $GITHUB_ENV
           echo "IMAGE_NAME=${{ vars.QUAY_RELEASE_REPO }}" >> $GITHUB_ENV
           echo "BUILTIN_IMAGE_NAME=quay.io/trustyai/guardrails-detector-built-in" >> $GITHUB_ENV
+          echo "LLM_JUDGE_IMAGE_NAME=quay.io/trustyai/guardrails-detector-llm-judge" >> $GITHUB_ENV
       #
       # Run docker commands
       - name: Put expiry date on CI-tagged image
@@ -82,6 +86,7 @@ jobs:
         run: |
           echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.hf
           echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.builtIn
+          echo 'LABEL quay.expires-after=7d#' >> detectors/Dockerfile.judge
       - name: Build image
         run: docker build -t ${{ env.IMAGE_NAME }}:$TAG -f detectors/Dockerfile.hf detectors
       - name: Log in to Quay
@@ -92,7 +97,10 @@ jobs:
         run: docker build -t ${{ env.BUILTIN_IMAGE_NAME }}:$TAG -f detectors/Dockerfile.builtIn detectors
       - name: Push to Quay CI repo
         run: docker push ${{ env.BUILTIN_IMAGE_NAME }}:$TAG
-
+      - name: Build LLM Judge detector image
+        run: docker build -t ${{ env.LLM_JUDGE_IMAGE_NAME }}:$TAG -f detectors/Dockerfile.judge detectors
+      - name: Push LLM Judge image to Quay CI repo
+        run: docker push ${{ env.LLM_JUDGE_IMAGE_NAME }}:$TAG
       # Leave comment
       - uses: peter-evans/find-comment@v3
         name: Find Comment
@@ -114,6 +122,7 @@ jobs:
             
             📦 [PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:${{ github.event.pull_request.head.sha }}`
             📦 [PR image](https://quay.io/trustyai/guardrails-detector-built-in-ci?tab=tags): `quay.io/trustyai/guardrails-detector-built-in-ci:${{ github.event.pull_request.head.sha }}`
+            📦 [PR image](https://quay.io/trustyai/guardrails-detector-llm-judge-ci?tab=tags): `quay.io/trustyai/guardrails-detector-llm-judge-ci:${{ github.event.pull_request.head.sha }}`
       - name: Trivy scan
         uses: aquasecurity/trivy-action@0.28.0
         with:
@@ -136,6 +145,17 @@ jobs:
           exit-code: '0'
           ignore-unfixed: false
           vuln-type: 'os,library'
+      - name: Trivy scan, LLM Judge image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'image'
+          image-ref: "${{ env.LLM_JUDGE_IMAGE_NAME }}:${{ env.TAG }}"
+          format: 'sarif'
+          output: 'trivy-results-llm-judge.sarif'
+          severity: 'MEDIUM,HIGH,CRITICAL'
+          exit-code: '0'
+          ignore-unfixed: false
+          vuln-type: 'os,library'
       - name: Update Security tab - Huggingface
         uses: github/codeql-action/upload-sarif@v3
         with:
@@ -146,3 +166,8 @@ jobs:
         with:
           sarif_file: 'trivy-results-built-in.sarif'
           category: built-in
+      - name: Update Security tab - LLM Judge
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results-llm-judge.sarif'
+          category: llm-judge
