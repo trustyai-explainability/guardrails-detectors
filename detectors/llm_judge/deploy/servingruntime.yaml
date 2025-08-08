@@ -17,7 +17,7 @@ spec:
       name: guardrails-detector-llm-judge
   containers:
     - name: kserve-container
-      image: quay.io/spandraj/guardrails-detector-judge:latest
+      image: quay.io/trustyai/guardrails-detector-llm-judge:latest
       command:
         - uvicorn
         - detectors.llm_judge.app:app
