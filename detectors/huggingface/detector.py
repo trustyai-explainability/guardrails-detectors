@@ -249,15 +249,16 @@ class Detector:
                     and idx not in all_safe_labels
                     and label not in all_safe_labels
                 ):
+                    detection_value = getattr(self.model.config, "problem_type", None)
                     content_analyses.append(
                         ContentAnalysisResponse(
                             start=0,
                             end=len(text),
-                            detection=getattr(self.model.config, "problem_type", None) or "sequence_classification",
                             detection_type=label,
                             score=prob,
                             text=text,
                             evidences=[],
+                            **({"detection": detection_value} if detection_value is not None else {})
                         )
                     )
         return content_analyses
