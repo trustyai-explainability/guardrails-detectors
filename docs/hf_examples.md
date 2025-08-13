@@ -99,6 +99,13 @@ export DETECTOR_DIR=$DETECTOR_STORAGE/$DETECTOR_NAME
 huggingface-cli download "$HF_MODEL" --local-dir "$DETECTOR_DIR"
 ```
 
+- Build the image again to include the new model:
+
+```bash
+export HF_IMAGE=hf-detector:latest
+podman build -f detectors/Dockerfile.hf -t $HF_IMAGE detectors
+```
+
 - then spin up the container as before:
 
 ```bash
