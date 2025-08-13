@@ -253,7 +253,7 @@ class Detector:
                         ContentAnalysisResponse(
                             start=0,
                             end=len(text),
-                            detection=getattr(self.model.config, "problem_type", "sequence_classification"),
+                            detection=getattr(self.model.config, "problem_type", None) or "sequence_classification",
                             detection_type=label,
                             score=prob,
                             text=text,
