@@ -127,7 +127,7 @@ class ContentAnalysisResponse(BaseModel):
     start: int = Field(example=14)
     end: int = Field(example=26)
     text: str = Field(example="abc@def.com")
-    detection: str = Field(example="Net.EmailAddress")
+    detection: str = Field(default="detection", example="Net.EmailAddress")
     detection_type: str = Field(example="pii")
     score: float = Field(example=0.8)
     evidences: Optional[List[EvidenceObj]] = Field(
