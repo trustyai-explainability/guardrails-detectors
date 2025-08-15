@@ -21,7 +21,6 @@ RUN echo "$CACHEBUST"
 COPY ./common /app/detectors/common
 COPY ./llm_judge/app.py /app/detectors/llm_judge/app.py
 COPY ./llm_judge/detector.py /app/detectors/llm_judge/detector.py
-COPY ./llm_judge/scheme.py /app/detectors/llm_judge/scheme.py
 RUN touch /app/detectors/llm_judge/__init__.py
 
 EXPOSE 8000
