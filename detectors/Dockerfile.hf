@@ -4,9 +4,27 @@ RUN microdnf update -y && \
         python-pip python-devel && \
     pip install --upgrade --no-cache-dir pip wheel && \
     microdnf clean all
-RUN pip install --no-cache-dir torch
 
-# FROM icr.io/fm-stack/ubi9-minimal-py39-torch as builder
+ARG TARGETARCH
+ENV TORCH_VERSION=2.7.1
+ARG _GLIBCXX_USE_CXX11_ABI=1
+
+RUN if [ "$TARGETARCH" = "s390x" ]; then \
+        microdnf install -y git gcc-toolset-13 make wget unzip rust cargo gcc-gfortran python3-devel openblas-devel pkgconfig && \
+        microdnf clean all && \
+        pip install --upgrade pip cmake setuptools wheel && \
+        source /opt/rh/gcc-toolset-13/enable && \
+        git clone --recursive https://github.com/pytorch/pytorch.git -b v${TORCH_VERSION} && \
+        cd pytorch && pip install -r requirements.txt && \
+        python setup.py develop && \
+        rm -f dist/torch*+git*whl && \
+        PYTORCH_BUILD_VERSION=${TORCH_VERSION} PYTORCH_BUILD_NUMBER=1 pip wheel . --wheel-dir /torchwheels/ && \
+        pip install /torchwheels/*.whl; \
+    else \
+        pip install --no-cache-dir torch; \
+    fi
+
+
 FROM base as builder
 
 COPY ./common/requirements.txt .
@@ -14,6 +32,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./huggingface/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+RUN if [ "$TARGETARCH" = "s390x" ]; then \
+        pip install --no-cache-dir uvicorn; \
+    fi
+
 
 FROM builder
 
