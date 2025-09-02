@@ -28,3 +28,11 @@ EXPOSE 8000
 CMD ["uvicorn", "app:app", "--workers", "4", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
 
 # gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+
+LABEL name="rhoai/odh-guardrails-detector-huggingface-runtime-rhel9" \
+      com.redhat.component="odh-guardrails-detector-huggingface-runtime-rhel9" \
+      io.k8s.display-name="odh-guardrails-detector-huggingface-runtime-rhel9" \
+      io.k8s.description="A HuggingFace-based generic detector designed for compatibility with any AutoModelForSequenceClassification or the GraniteForCausalLM model." \
+      description="A HuggingFace-based generic detector designed for compatibility with any AutoModelForSequenceClassification or the GraniteForCausalLM model." \
+      summary="A HuggingFace-based generic detector designed for compatibility with any AutoModelForSequenceClassification or the GraniteForCausalLM model." \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
