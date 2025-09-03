@@ -10,11 +10,17 @@ RUN microdnf update -y                                            && \
         microdnf install -y --nodocs                                 \
             git gcc-toolset-13 rust cargo wget unzip              && \
         pip install --upgrade --no-cache-dir 'cmake<4'             ; \
+    elif [ "$TARGETARCH" = "s390x" ]; then                           \
+        microdnf install -y --nodocs                                 \
+            git gcc-toolset-13 make wget unzip rust cargo            \
+            gcc-gfortran python3-devel openblas-devel pkgconfig   && \
+        pip install --upgrade --no-cache-dir 'cmake<4'               \
+                                        setuptools wheel           ; \
     fi                                                            && \
     microdnf clean all
 
 
-RUN if [ "$TARGETARCH" != "ppc64le" ]; then                           \
+RUN if [ "$TARGETARCH" != "ppc64le" ] && [ "$TARGETARCH" != "s390x" ]; then \
         pip install --no-cache-dir torch                            ; \
     fi
 
@@ -29,7 +35,7 @@ ARG TARGETARCH
 ENV TORCH_VERSION=2.6.0
 ENV PATH="$HOME/.cargo/bin:$PATH"
 
-RUN if [ "$TARGETARCH" = "ppc64le" ]; then                                               \
+RUN if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then                \
     source /opt/rh/gcc-toolset-13/enable                                              && \
     git clone --recursive https://github.com/pytorch/pytorch.git -b v${TORCH_VERSION} && \
     cd pytorch && pip install -r requirements.txt                                     && \
@@ -64,7 +70,7 @@ ARG TARGETARCH
 
 # Install PyTorch for ppc64le
 RUN --mount=type=bind,from=torch-builder,source=/tmp/,target=/wheels/,ro \
-    if [ "$TARGETARCH" = "ppc64le" ]; then                               \
+    if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
         HOME=/root pip install /wheels/torchwheels/*.whl                ;\
     fi
 
@@ -78,7 +84,7 @@ COPY ./common/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./huggingface/requirements.txt .
-RUN if [ "$TARGETARCH" = "ppc64le" ]; then                               \
+RUN if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
        source /opt/rh/gcc-toolset-13/enable                            ; \
     fi                                                                && \
     pip install --no-cache-dir -r requirements.txt
