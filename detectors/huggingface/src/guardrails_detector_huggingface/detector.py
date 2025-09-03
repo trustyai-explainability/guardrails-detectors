@@ -1,8 +1,4 @@
 import os
-import sys
-
-sys.path.insert(0, os.path.abspath(".."))
-import json
 import math
 import torch
 from transformers import (
@@ -11,8 +7,8 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForCausalLM,
 )
-from common.app import logger
-from common.scheme import (
+from guardrails_detectors_common import logger
+from guardrails_detectors_common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
@@ -226,7 +222,7 @@ class Detector:
             threshold = detector_params.get("threshold", 0.5)
         # Merge safe_labels from env and request
         request_safe_labels = set(detector_params.get("safe_labels", []))
-        all_safe_labels = set(self.safe_labels) | request_safe_labels 
+        all_safe_labels = set(self.safe_labels) | request_safe_labels
         content_analyses = []
         tokenized = self.tokenizer(
             text,

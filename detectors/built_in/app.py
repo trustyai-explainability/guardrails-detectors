@@ -5,8 +5,8 @@ from regex_detectors import RegexDetectorRegistry
 from file_type_detectors import FileTypeDetectorRegistry
 
 from prometheus_fastapi_instrumentator import Instrumentator
-from detectors.common.scheme import ContentAnalysisHttpRequest,  ContentsAnalysisResponse
-from detectors.common.app import DetectorBaseAPI as FastAPI
+from guardrails_detector_common import ContentAnalysisHttpRequest, ContentsAnalysisResponse
+from guardrails_detector_common import DetectorBaseAPI as FastAPI
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

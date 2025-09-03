@@ -1,1 +1,2 @@
 vllm-judge[jinja2]==0.1.8
+guardrails-detectors-common>=0.1.1
