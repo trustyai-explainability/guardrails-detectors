@@ -80,14 +80,13 @@ RUN if [ "$TARGETARCH" = "ppc64le" ]; then                               \
         PREFIX=/usr/local make -C /openblas install                     ;\
     fi
 
-COPY ./common/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY ./huggingface/requirements.txt .
+COPY ./common ./common
+COPY ./huggingface/requirements.txt ./huggingface/requirements.txt
+COPY ./huggingface/requirements.in ./huggingface/requirements.in
 RUN if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
        source /opt/rh/gcc-toolset-13/enable                            ; \
     fi                                                                && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r ./huggingface/requirements.in
 
 RUN rm -rf /openblas && rm -rf /wheels
 
