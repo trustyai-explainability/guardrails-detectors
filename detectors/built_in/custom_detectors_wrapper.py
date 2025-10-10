@@ -12,10 +12,15 @@ from detectors.common.scheme import ContentAnalysisResponse
 
 logger = logging.getLogger(__name__)
 
-def custom_func_wrapper(func: Callable, func_name: str, s: str) -> Optional[ContentAnalysisResponse]:
+def custom_func_wrapper(func: Callable, func_name: str, s: str, headers: dict) -> Optional[ContentAnalysisResponse]:
     """Convert a some f(text)->bool into a Detector response"""
+    sig = inspect.signature(func)
     try:
-        result = func(s)
+        if headers is not None:
+            result = func(s, headers)
+        else:
+            result = func(s)
+
     except Exception as e:
         logging.error(f"Error when computing custom detector function {func_name}: {e}")
         raise e
@@ -96,9 +101,10 @@ class CustomDetectorRegistry(BaseDetectorRegistry):
         self.registry = {name: obj for name, obj
                          in inspect.getmembers(custom_detectors, inspect.isfunction)
                          if not name.startswith("_")}
+        self.function_needs_headers = {name: "headers" in inspect.signature(obj).parameters for name, obj in self.registry.items() }
         logger.info(f"Registered the following custom detectors: {self.registry.keys()}")
 
-    def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
+    def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         detections = []
         if "custom" in detector_params and isinstance(detector_params["custom"], (list, str)):
             custom_functions = detector_params["custom"]
@@ -106,7 +112,8 @@ class CustomDetectorRegistry(BaseDetectorRegistry):
             for custom_function in custom_functions:
                 if self.registry.get(custom_function):
                     try:
-                        result = custom_func_wrapper(self.registry[custom_function], custom_function, content)
+                        func_headers = headers if self.function_needs_headers.get(custom_function) else None
+                        result = custom_func_wrapper(self.registry[custom_function], custom_function, content, func_headers)
                         if result is not None:
                             detections.append(result)
                     except Exception as e:

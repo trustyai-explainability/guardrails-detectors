@@ -12,13 +12,8 @@ CUSTOM_DETECTORS_PATH = os.path.join(
     "../../../detectors/built_in/custom_detectors/custom_detectors.py"
 )
 
-SAFE_CODE = """
-def over_100_characters(text: str) -> bool:
-    return len(text)>100
-
-def contains_word(text: str) -> bool:
-    return "apple" in text.lower()
-"""
+with open(CUSTOM_DETECTORS_PATH) as f:
+    SAFE_CODE = f.read()
 
 UNSAFE_CODE = '''
 import os
@@ -79,6 +74,27 @@ class TestCustomDetectors:
         assert resp.status_code == 200
         texts = [d["text"] for d in resp.json()[0]]
         assert msg not in texts
+
+    def test_custom_detectors_need_header(self, client):
+        msg = "What is an banana?"
+        payload = {
+            "contents": [msg],
+            "detector_params": {"custom": ["function_that_needs_headers"]}
+        }
+
+        # shouldn't flag
+        headers = {"magic-key": "123"}
+        resp = client.post("/api/v1/text/contents", json=payload, headers=headers)
+        assert resp.status_code == 200
+        texts = [d["text"] for d in resp.json()[0]]
+        assert msg not in texts
+
+        # should flag
+        headers = {"magic-key": "wrong"}
+        resp = client.post("/api/v1/text/contents", json=payload, headers=headers)
+        assert resp.status_code == 200
+        texts = [d["text"] for d in resp.json()[0]]
+        assert msg in texts
 
     def test_unsafe_code(self, client):
         write_code_to_custom_detectors(UNSAFE_CODE)
