@@ -176,7 +176,7 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
             "yaml-with-schema:$SCHEMA": is_valid_yaml_schema,
         }
 
-    def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
+    def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         detections = []
         if "file_type" in detector_params and isinstance(detector_params["file_type"], (list, str)):
             file_types = detector_params["file_type"]
