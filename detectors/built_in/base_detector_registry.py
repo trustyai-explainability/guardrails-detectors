@@ -8,7 +8,7 @@ class BaseDetectorRegistry(ABC):
         self.registry = None
 
     @abstractmethod
-    def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
+    def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         pass
     
     def get_registry(self):

@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from contextlib import asynccontextmanager
 from base_detector_registry import BaseDetectorRegistry
 from regex_detectors import RegexDetectorRegistry
@@ -29,8 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 @app.post("/api/v1/text/contents", response_model=ContentsAnalysisResponse)
-def detect_content(request: ContentAnalysisHttpRequest):
+def detect_content(request: ContentAnalysisHttpRequest, raw_request: Request):
     logger.info(f"Request for {request.detector_params}")
+
+    headers = dict(raw_request.headers)
 
     detections = []
     for content in request.contents:
@@ -43,7 +45,7 @@ def detect_content(request: ContentAnalysisHttpRequest):
                 raise TypeError(f"Detector {detector_kind} is not a valid BaseDetectorRegistry")
             else:
                 try:
-                    message_detections += detector_registry.handle_request(content, request.detector_params)
+                    message_detections += detector_registry.handle_request(content, request.detector_params, headers)
                 except HTTPException as e:
                     raise e
                 except Exception as e:

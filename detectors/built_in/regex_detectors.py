@@ -131,7 +131,7 @@ class RegexDetectorRegistry(BaseDetectorRegistry):
             "$CUSTOM_REGEX": custom_regex_documenter,
         }
 
-    def handle_request(self, content: str, detector_params: dict) -> List[ContentAnalysisResponse]:
+    def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         detections = []
         if "regex" in detector_params and isinstance(detector_params["regex"], (list, str)):
             regexes = detector_params["regex"]
