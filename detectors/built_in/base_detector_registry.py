@@ -6,7 +6,6 @@ from http.client import HTTPException
 from typing import List
 
 from detectors.common.scheme import ContentAnalysisResponse
-from detectors.common.metrics import update_detection_rates
 
 class BaseDetectorRegistry(ABC):
     def __init__(self, registry_name):
@@ -14,8 +13,7 @@ class BaseDetectorRegistry(ABC):
         self.registry_name = registry_name
 
         # prometheus
-        self.instruments = None
-        self.detections_gauge = None
+        self.instruments = {}
 
     @abstractmethod
     def handle_request(self, content: str, detector_params: dict, headers: dict, **kwargs) -> List[ContentAnalysisResponse]:
@@ -29,22 +27,28 @@ class BaseDetectorRegistry(ABC):
 
     def increment_detector_instruments(self, function_name: str, is_detection: bool):
         """Increment the detection and request counters, automatically update rates"""
-        updated = False
         if self.instruments.get("requests"):
             self.instruments["requests"].labels(self.registry_name, function_name).inc()
-            updated = True
-        if is_detection and self.instruments.get("detections"):
-            self.instruments["detections"].labels(self.registry_name, function_name).inc()
-            updated = True
 
-        if updated:
-            update_detection_rates(self.instruments, self.registry_name, function_name)
+        # The labels() function will initialize the counters if not already created.
+        # This prevents the counters not existing until they are first incremented
+        # If the counters have already been created, this is just a cheap dict.get() call
+        if self.instruments.get("errors"):
+            _ = self.instruments["errors"].labels(self.registry_name, function_name)
+        if self.instruments.get("runtime"):
+            _ = self.instruments["runtime"].labels(self.registry_name, function_name)
+
+        # create and/or increment the detection counter
+        if self.instruments.get("detections"):
+            detection_counter = self.instruments["detections"].labels(self.registry_name, function_name)
+            if is_detection:
+                detection_counter.inc()
+
 
     def increment_error_instruments(self, function_name: str):
         """Increment the error counter, update the rate gauges"""
         if self.instruments.get("errors"):
             self.instruments["errors"].labels(self.registry_name, function_name).inc()
-            update_detection_rates(self.instruments, self.registry_name, function_name)
 
 
     def throw_internal_detector_error(self, function_name: str, logger: logging.Logger, exception: Exception, increment_requests: bool):
@@ -61,7 +65,8 @@ class BaseDetectorRegistry(ABC):
         try:
             start_time = time.time()
             yield
-            self.instruments["runtime"].labels(self.registry_name, function_name).inc(time.time() - start_time)
+            if self.instruments.get("runtime"):
+                self.instruments["runtime"].labels(self.registry_name, function_name).inc(time.time() - start_time)
         finally:
             pass
 

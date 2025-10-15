@@ -52,21 +52,6 @@ class DetectorBaseAPI(FastAPI):
                 "Number of errors per built-in detector function",
                 ["detector_kind", "detector_name"]
             ),
-            "pass_rate": Gauge(
-                "trustyai_guardrails_pass_rate",
-                "Ratio of approved requests versus total requests for a built-in detector function",
-                ["detector_kind", "detector_name"]
-            ),
-            "detection_rate": Gauge(
-                "trustyai_guardrails_detection_rate",
-                "Ratio of blocked requests versus total requests for a built-in detector function",
-                ["detector_kind", "detector_name"]
-            ),
-            "error_rate": Gauge(
-                "trustyai_guardrails_error_rate",
-                "Ratio of errors versus total requests for a built-in detector function",
-                ["detector_kind", "detector_name"]
-            ),
             "runtime": Counter(
                 "trustyai_guardrails_runtime",
                 "Total runtime of a built-in detector function- this is the induced latency of this guardrail",
@@ -195,7 +180,6 @@ def main(app):
         if str(config["server"]["workers"])
         else config["server"]["workers"]
     )
-    p
 
     if "ssl_ca_certs" in config["server"]:
         config["server"]["ssl_cert_reqs"] = ssl.CERT_REQUIRED

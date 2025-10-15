@@ -172,23 +172,14 @@ class TestMetrics:
             'trustyai_guardrails_detections_total{detector_kind="regex",detector_name="custom_regex"}': 7.0,
             'trustyai_guardrails_errors_total{detector_kind="regex",detector_name="custom_regex"}': 1.0,
             'trustyai_guardrails_requests_total{detector_kind="regex",detector_name="custom_regex"}': 10.0,
-            'trustyai_guardrails_pass_rate{detector_kind="regex",detector_name="custom_regex"}': 0.20,
-            'trustyai_guardrails_detection_rate{detector_kind="regex",detector_name="custom_regex"}': 0.70,
-            'trustyai_guardrails_error_rate{detector_kind="regex",detector_name="custom_regex"}': 0.10,
 
             'trustyai_guardrails_detections_total{detector_kind="file_type",detector_name="json"}': 6.0,
             'trustyai_guardrails_errors_total{detector_kind="file_type",detector_name="json"}': 0.0,
             'trustyai_guardrails_requests_total{detector_kind="file_type",detector_name="json"}': 10.0,
-            'trustyai_guardrails_pass_rate{detector_kind="file_type",detector_name="json"}': .40,
-            'trustyai_guardrails_detection_rate{detector_kind="file_type",detector_name="json"}': 0.60,
-            'trustyai_guardrails_error_rate{detector_kind="file_type",detector_name="json"}': 0.0,
 
             'trustyai_guardrails_detections_total{detector_kind="custom",detector_name="throws_error"}': 30.0,
             'trustyai_guardrails_errors_total{detector_kind="custom",detector_name="throws_error"}': 20.0,
             'trustyai_guardrails_requests_total{detector_kind="custom",detector_name="throws_error"}': 100.0,
-            'trustyai_guardrails_pass_rate{detector_kind="custom",detector_name="throws_error"}': .50,
-            'trustyai_guardrails_detection_rate{detector_kind="custom",detector_name="throws_error"}': 0.30,
-            'trustyai_guardrails_error_rate{detector_kind="custom",detector_name="throws_error"}': .20,
         }
 
         metric_dict = get_metric_dict(client)

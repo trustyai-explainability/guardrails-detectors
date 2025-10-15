@@ -190,7 +190,7 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
                     with self.instrument_runtime(func_name):
                         result = is_valid_json_schema(content, file_type.split("json-with-schema:")[1])
                 elif file_type.startswith("yaml-with-schema"):
-                    func_name = "json-with-schema"  # don't publish full schema to prometheus labels, to limit metric cardinality
+                    func_name = "yaml-with-schema"  # don't publish full schema to prometheus labels, to limit metric cardinality
                     with self.instrument_runtime(func_name):
                         result = is_valid_yaml_schema(content, file_type.split("yaml-with-schema:")[1])
                 elif file_type.startswith("xml-with-schema"):
@@ -202,8 +202,8 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
                     with self.instrument_runtime(func_name):
                         result = self.registry[file_type](content)
                 else:
-                    file_type_valid = False
                     func_name = "invalid_file_type"
+                    file_type_valid = False
             except Exception as e:
                 self.throw_internal_detector_error(func_name, logger, e, increment_requests=True)
 

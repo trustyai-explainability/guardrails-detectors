@@ -150,6 +150,7 @@ class RegexDetectorRegistry(BaseDetectorRegistry):
                     with self.instrument_runtime(func_name):
                         new_detections += get_regex_detections(content, regex, "regex", "custom-regex")
             except Exception as e:
+                print(e)
                 self.throw_internal_detector_error(func_name, logger, e, increment_requests=True)
             self.increment_detector_instruments(func_name, len(new_detections) > 0)
             detections += new_detections
