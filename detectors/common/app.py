@@ -7,6 +7,7 @@ import uvicorn
 import yaml
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from prometheus_client import Gauge, Counter
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -35,6 +36,29 @@ class DetectorBaseAPI(FastAPI):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.state.detectors = {}
+        self.state.instruments = {
+            "detections": Counter(
+                "trustyai_guardrails_detections",
+                "Number of detections per built-in detector function",
+                ["detector_kind", "detector_name"]
+            ),
+            "requests": Counter(
+                "trustyai_guardrails_requests",
+                "Number of requests per built-in detector function",
+                ["detector_kind", "detector_name"]
+            ),
+            "errors": Counter(
+                "trustyai_guardrails_errors",
+                "Number of errors per built-in detector function",
+                ["detector_kind", "detector_name"]
+            ),
+            "runtime": Counter(
+                "trustyai_guardrails_runtime",
+                "Total runtime of a built-in detector function- this is the induced latency of this guardrail",
+                ["detector_kind", "detector_name"]
+            )
+        }
+        #self.state.instruments["detection_rate"].set_function(lambda: self.state.detectors["detections"])
         self.add_exception_handler(
             RequestValidationError, self.validation_exception_handler
         )
@@ -98,7 +122,7 @@ class DetectorBaseAPI(FastAPI):
     def set_detector(self, detector, detector_name="default") -> None:
         """Store detector in app.state"""
         self.state.detectors[detector_name] = detector
-        
+
     def get_detector(self, detector_name="default"):
         """Retrieve detector from app.state"""
         return self.state.detectors.get(detector_name)
