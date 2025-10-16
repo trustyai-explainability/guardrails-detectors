@@ -1,5 +1,6 @@
 import ast
 import os
+import traceback
 
 from fastapi import HTTPException
 import inspect
@@ -89,7 +90,7 @@ def static_code_analysis(module_path, forbidden_imports=None, forbidden_calls=No
 
 class CustomDetectorRegistry(BaseDetectorRegistry):
     def __init__(self):
-        super().__init__()
+        super().__init__("custom")
 
         issues = static_code_analysis(module_path = os.path.join(os.path.dirname(__file__), "custom_detectors", "custom_detectors.py"))
         if issues:
@@ -104,22 +105,21 @@ class CustomDetectorRegistry(BaseDetectorRegistry):
         self.function_needs_headers = {name: "headers" in inspect.signature(obj).parameters for name, obj in self.registry.items() }
         logger.info(f"Registered the following custom detectors: {self.registry.keys()}")
 
-    def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
-        detections = []
-        if "custom" in detector_params and isinstance(detector_params["custom"], (list, str)):
-            custom_functions = detector_params["custom"]
-            custom_functions = [custom_functions] if isinstance(custom_functions, str) else custom_functions
-            for custom_function in custom_functions:
-                if self.registry.get(custom_function):
-                    try:
-                        func_headers = headers if self.function_needs_headers.get(custom_function) else None
-                        result = custom_func_wrapper(self.registry[custom_function], custom_function, content, func_headers)
-                        if result is not None:
-                            detections.append(result)
-                    except Exception as e:
-                        logger.error(e)
-                        raise HTTPException(status_code=400, detail="Detection error, check detector logs")
-                else:
-                    raise HTTPException(status_code=400, detail=f"Unrecognized custom function: {custom_function}")
-        return detections
 
+    def handle_request(self, content: str, detector_params: dict, headers: dict, **kwargs) -> List[ContentAnalysisResponse]:
+        detections = []
+        for custom_function_name in self.get_detection_functions_from_params(detector_params):
+            if self.registry.get(custom_function_name):
+                try:
+                    func_headers = headers if self.function_needs_headers.get(custom_function_name) else None
+                    with self.instrument_runtime(custom_function_name):
+                        result = custom_func_wrapper(self.registry[custom_function_name], custom_function_name, content, func_headers)
+                    is_detection = result is not None
+                    self.increment_detector_instruments(custom_function_name, is_detection)
+                    if is_detection:
+                        detections.append(result)
+                except Exception as e:
+                    self.throw_internal_detector_error(custom_function_name, logger, e, increment_requests=True)
+            else:
+                raise HTTPException(status_code=400, detail=f"Unrecognized custom function: {custom_function_name}")
+        return detections

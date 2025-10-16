@@ -1,4 +1,6 @@
 import json
+import logging
+
 from fastapi import HTTPException
 
 import jsonschema
@@ -11,6 +13,7 @@ from typing import List, Optional
 from base_detector_registry import BaseDetectorRegistry
 from detectors.common.scheme import ContentAnalysisResponse
 
+logger = logging.getLogger(__name__)
 
 def is_valid_json(s: str) -> Optional[ContentAnalysisResponse]:
     """Detect if the text contents is not valid JSON"""
@@ -167,6 +170,7 @@ def is_valid_xml_schema(s: str, schema) -> Optional[ContentAnalysisResponse]:
 
 class FileTypeDetectorRegistry(BaseDetectorRegistry):
     def __init__(self):
+        super().__init__("file_type")
         self.registry = {
             "json": is_valid_json,
             "xml": is_valid_xml,
@@ -178,26 +182,37 @@ class FileTypeDetectorRegistry(BaseDetectorRegistry):
 
     def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         detections = []
-        if "file_type" in detector_params and isinstance(detector_params["file_type"], (list, str)):
-            file_types = detector_params["file_type"]
-            file_types = [file_types] if isinstance(file_types, str) else file_types
-            for file_type in file_types:
+        for file_type in self.get_detection_functions_from_params(detector_params):
+            file_type_valid, func_name = True, None
+            try:
                 if file_type.startswith("json-with-schema"):
-                    result = is_valid_json_schema(content, file_type.split("json-with-schema:")[1])
-                    if result is not None:
-                        detections += [result]
+                    func_name = "json-with-schema"  # don't publish full schema to prometheus labels, to limit metric cardinality
+                    with self.instrument_runtime(func_name):
+                        result = is_valid_json_schema(content, file_type.split("json-with-schema:")[1])
                 elif file_type.startswith("yaml-with-schema"):
-                    result = is_valid_yaml_schema(content, file_type.split("yaml-with-schema:")[1])
-                    if result is not None:
-                        detections += [result]
+                    func_name = "yaml-with-schema"  # don't publish full schema to prometheus labels, to limit metric cardinality
+                    with self.instrument_runtime(func_name):
+                        result = is_valid_yaml_schema(content, file_type.split("yaml-with-schema:")[1])
                 elif file_type.startswith("xml-with-schema"):
-                    result = is_valid_xml_schema(content, file_type.split("xml-with-schema:")[1])
-                    if result is not None:
-                        detections += [result]
+                    func_name = "xml-with-schema" # as above
+                    with self.instrument_runtime(func_name):
+                        result = is_valid_xml_schema(content, file_type.split("xml-with-schema:")[1])
                 elif file_type in self.registry:
-                    result = self.registry[file_type](content)
-                    if result is not None:
-                        detections += [result]
+                    func_name = file_type
+                    with self.instrument_runtime(func_name):
+                        result = self.registry[file_type](content)
                 else:
-                    raise HTTPException(status_code=400, detail=f"Unrecognized file type: {file_type}")
+                    func_name = "invalid_file_type"
+                    file_type_valid = False
+            except Exception as e:
+                self.throw_internal_detector_error(func_name, logger, e, increment_requests=True)
+
+            if not file_type_valid:
+                raise HTTPException(status_code=400, detail=f"Unrecognized file type: {file_type}")
+
+            # report results
+            is_detection = result is not None
+            self.increment_detector_instruments(func_name, is_detection)
+            if is_detection:
+                detections += [result]
         return detections

@@ -8,17 +8,21 @@ from custom_detectors_wrapper import CustomDetectorRegistry
 from file_type_detectors import FileTypeDetectorRegistry
 
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge
 from detectors.common.scheme import ContentAnalysisHttpRequest,  ContentsAnalysisResponse
 from detectors.common.app import DetectorBaseAPI as FastAPI
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.set_detector(RegexDetectorRegistry(), "regex")
-    app.set_detector(FileTypeDetectorRegistry(), "file_type")
-    app.set_detector(CustomDetectorRegistry(), "custom")
+    for detector_registry in [
+        RegexDetectorRegistry(),
+        FileTypeDetectorRegistry(),
+        CustomDetectorRegistry()
+    ]:
+        app.set_detector(detector_registry, detector_registry.registry_name)
+        detector_registry.add_instruments(app.state.instruments)
     yield
-    
     app.cleanup_detector()
 
 

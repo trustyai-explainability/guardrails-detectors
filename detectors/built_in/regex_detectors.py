@@ -1,9 +1,12 @@
 import re
+from time import time
 from http.client import HTTPException
 from typing import List
+import logging
 from base_detector_registry import BaseDetectorRegistry
 from detectors.common.scheme import ContentAnalysisResponse
 
+logger = logging.getLogger(__name__)
 
 def email_address_detector(string: str) -> List[ContentAnalysisResponse]:
     """Detect email addresses in the text contents"""
@@ -33,7 +36,6 @@ def credit_card_detector(string: str) -> List[ContentAnalysisResponse]:
     detections = []
     for match in re.finditer(pattern, string):
         cc_number = match.group(0).replace(" ", "").replace("-", "")
-        print(cc_number)
         if is_luhn_valid(cc_number):
             detections.append(
                 ContentAnalysisResponse(
@@ -120,6 +122,7 @@ def custom_regex_documenter():
 # === ROUTER =======================================================================================
 class RegexDetectorRegistry(BaseDetectorRegistry):
     def __init__(self):
+        super().__init__("regex")
         self.registry =  {
             "credit-card": credit_card_detector,
             "email": email_address_detector,
@@ -133,14 +136,22 @@ class RegexDetectorRegistry(BaseDetectorRegistry):
 
     def handle_request(self, content: str, detector_params: dict, headers: dict) -> List[ContentAnalysisResponse]:
         detections = []
-        if "regex" in detector_params and isinstance(detector_params["regex"], (list, str)):
-            regexes = detector_params["regex"]
-            regexes = [regexes] if isinstance(regexes, str) else regexes
-            for regex in regexes:
+        for regex in self.get_detection_functions_from_params(detector_params):
+            new_detections = []
+            try:
                 if regex == "$CUSTOM_REGEX":
-                    pass
+                    continue
                 elif regex in self.registry:
-                    detections += self.registry[regex](content)
+                    func_name = regex
+                    with self.instrument_runtime(func_name):
+                        new_detections = self.registry[regex](content)
                 else:
-                    detections += get_regex_detections(content, regex, "regex", "custom-regex")
+                    func_name = "custom_regex" # don't publish custom regexes to prometheus labels, to limit metric cardinality
+                    with self.instrument_runtime(func_name):
+                        new_detections += get_regex_detections(content, regex, "regex", "custom-regex")
+            except Exception as e:
+                print(e)
+                self.throw_internal_detector_error(func_name, logger, e, increment_requests=True)
+            self.increment_detector_instruments(func_name, len(new_detections) > 0)
+            detections += new_detections
         return detections
