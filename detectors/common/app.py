@@ -7,15 +7,12 @@ import uvicorn
 import yaml
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from prometheus_client import Gauge, Counter
-
-sys.path.insert(0, os.path.abspath(".."))
+from prometheus_client import Counter
 
 import logging
 
 from fastapi import FastAPI, status
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from prometheus_fastapi_instrumentator import Instrumentator
 
 logger = logging.getLogger(__name__)
 uvicorn_error_logger = logging.getLogger("uvicorn.error")
@@ -39,22 +36,22 @@ class DetectorBaseAPI(FastAPI):
         self.state.instruments = {
             "detections": Counter(
                 "trustyai_guardrails_detections",
-                "Number of detections per built-in detector function",
+                "Number of detections per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "requests": Counter(
                 "trustyai_guardrails_requests",
-                "Number of requests per built-in detector function",
+                "Number of requests per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "errors": Counter(
                 "trustyai_guardrails_errors",
-                "Number of errors per built-in detector function",
+                "Number of errors per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "runtime": Counter(
                 "trustyai_guardrails_runtime",
-                "Total runtime of a built-in detector function- this is the induced latency of this guardrail",
+                "Total runtime of a detector function- this is the induced latency of this guardrail",
                 ["detector_kind", "detector_name"]
             )
         }

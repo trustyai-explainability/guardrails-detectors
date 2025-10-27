@@ -55,7 +55,6 @@ class TestFileTypeDetectors:
             "detector_params": {"file_type": ["json"]}
         }
         resp = client.post("/api/v1/text/contents", json=payload)
-        print(resp.content)
         assert resp.status_code == 200
         detections = resp.json()[0]
         assert detections[0]["detection"] == "invalid_json"
