@@ -13,7 +13,7 @@ At the moment, the following detectors are supported:
 - `builtIn` -- Small, lightweight detection functions that are deployed out-of-the-box alongside the [Guardrails Orchestrator](https://github.com/foundation-model-stack/fms-guardrails-orchestrator). The built-in detectors provide a number of heuristic or algorithmic detection functions, such as:
   - Regex-based detections, with pre-written regexes for flagging various Personally Identifiable Information items like emails or phone numbers, as well as the ability to provide custom regexes
   - File-type validations, for verifying if model input/output is valid JSON, XML, or YAML
-
+  - "Custom" detectors which can be defined with raw Python code, which allows for easy declaration of custom detection functions that can perform arbitrarily complex logic.
 
 ## Building
 
