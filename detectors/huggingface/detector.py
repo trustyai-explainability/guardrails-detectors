@@ -1,7 +1,7 @@
 import os
-import sys
 
-sys.path.insert(0, os.path.abspath(".."))
+from detectors.common.instrumented_detector import InstrumentedDetector
+
 import json
 import math
 import torch
@@ -11,13 +11,14 @@ from transformers import (
     AutoModelForSequenceClassification,
     AutoModelForCausalLM,
 )
-from common.app import logger
-from common.scheme import (
+from detectors.common.app import logger
+from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentAnalysisResponse,
     ContentsAnalysisResponse,
 )
 import gc
+
 
 def _parse_safe_labels_env():
     if os.environ.get("SAFE_LABELS"):
@@ -35,7 +36,8 @@ def _parse_safe_labels_env():
     logger.info("SAFE_LABELS env var not set: defaulting to [0].")
     return [0]
 
-class Detector:
+
+class Detector(InstrumentedDetector):
     risk_names = [
         "harm",
         "social_bias",
@@ -50,6 +52,7 @@ class Detector:
         """
         Initialize the Detector class by setting up the model, tokenizer, and device.
         """
+        super().__init__()
         self.tokenizer = None
         self.model = None
         self.cuda_device = None
@@ -101,6 +104,18 @@ class Detector:
             self.model_name = "token_classifier"
         else:
             self.model_name = "unknown"
+
+        self.registry_name = self.model_name
+
+        # set by k8s to be the pod name
+        if os.environ.get("DETECTOR_NAME"):
+            pod_name = os.environ.get("DETECTOR_NAME")
+            if "-predictor" in pod_name:
+                # recover the original ISVC name as specified by the user
+                pod_name = pod_name.split("-predictor")[0]
+            self.function_name = pod_name
+        else:
+            self.function_name = os.path.basename(model_files_path)
 
         logger.info(f"Model type detected: {self.model_name}")
 
@@ -173,7 +188,7 @@ class Detector:
         unsafe_token_prob = 1e-50
         for gen_token_i in logprobs:
             for logprob, index in zip(
-                gen_token_i.values.tolist()[0], gen_token_i.indices.tolist()[0]
+                    gen_token_i.values.tolist()[0], gen_token_i.indices.tolist()[0]
             ):
                 decoded_token = self.tokenizer.convert_ids_to_tokens(index)
                 if decoded_token.strip().lower() == safe_token.lower():
@@ -226,7 +241,7 @@ class Detector:
             threshold = detector_params.get("threshold", 0.5)
         # Merge safe_labels from env and request
         request_safe_labels = set(detector_params.get("safe_labels", []))
-        all_safe_labels = set(self.safe_labels) | request_safe_labels 
+        all_safe_labels = set(self.safe_labels) | request_safe_labels
         content_analyses = []
         tokenized = self.tokenizer(
             text,
@@ -245,9 +260,9 @@ class Detector:
                 label = self.model.config.id2label[idx]
                 # Exclude by index or label name
                 if (
-                    prob >= threshold
-                    and idx not in all_safe_labels
-                    and label not in all_safe_labels
+                        prob >= threshold
+                        and idx not in all_safe_labels
+                        and label not in all_safe_labels
                 ):
                     detection_value = getattr(self.model.config, "problem_type", None)
                     content_analyses.append(
@@ -274,16 +289,19 @@ class Detector:
             ContentsAnalysisResponse: The aggregated response for all input texts.
         """
         contents_analyses = []
-        for text in input.contents:
-            if self.is_causal_lm:
-                analyses = self.process_causal_lm(text)
-            elif self.is_sequence_classifier:
-                analyses = self.process_sequence_classification(
-                    text, detector_params=getattr(input, "detector_params", None)
-                )
-            else:
-                raise ValueError("Unsupported model type for analysis.")
-            contents_analyses.append(analyses)
+        with self.instrument_runtime(self.function_name):
+            for text in input.contents:
+                if self.is_causal_lm:
+                    analyses = self.process_causal_lm(text)
+                elif self.is_sequence_classifier:
+                    analyses = self.process_sequence_classification(
+                        text, detector_params=getattr(input, "detector_params", None)
+                    )
+                else:
+                    raise ValueError("Unsupported model type for analysis.")
+                contents_analyses.append(analyses)
+        is_detection = any(len(analyses) > 0 for analyses in contents_analyses)
+        self.increment_detector_instruments(self.function_name, is_detection=is_detection)
         return contents_analyses
 
     def close(self) -> None:

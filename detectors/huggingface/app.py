@@ -1,15 +1,11 @@
-import os
-import sys
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import List
 
-from fastapi import Header
 from prometheus_fastapi_instrumentator import Instrumentator
-sys.path.insert(0, os.path.abspath(".."))
-
-from common.app import DetectorBaseAPI as FastAPI
-from detector import Detector
-from common.scheme import (
+from starlette.concurrency import run_in_threadpool
+from detectors.common.app import DetectorBaseAPI as FastAPI
+from detectors.huggingface.detector import Detector
+from detectors.common.scheme import (
     ContentAnalysisHttpRequest,
     ContentsAnalysisResponse,
     Error,
@@ -18,7 +14,9 @@ from common.scheme import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.set_detector(Detector())
+    detector = Detector()
+    app.set_detector(detector, detector.model_name)
+    detector.add_instruments(app.state.instruments)
     yield
     # Clean up the ML models and release the resources
     detector: Detector = app.get_detector()
@@ -42,10 +40,11 @@ Instrumentator().instrument(app).expose(app)
     },
 )
 async def detector_unary_handler(
-    request: ContentAnalysisHttpRequest,
-    detector_id: Annotated[str, Header(example="en_syntax_slate.38m.hap")],
+        request: ContentAnalysisHttpRequest,
 ):
-    detector: Detector = app.get_detector()
-    if not detector:
+    detectors: List[Detector] = list(app.get_all_detectors().values())
+    if not len(detectors) or not detectors[0]:
         raise RuntimeError("Detector is not initialized")
-    return ContentsAnalysisResponse(root=detector.run(request))
+    result = await run_in_threadpool(detectors[0].run, request)
+    return ContentsAnalysisResponse(root=result)
+
