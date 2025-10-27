@@ -102,6 +102,6 @@ RUN mkdir /common; cp /app/detectors/common/log_conf.yaml /common/
 COPY ./huggingface/app.py /app
 
 EXPOSE 8000
-CMD ["uvicorn", "app:app", "--workers", "4", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
+CMD ["uvicorn", "app:app", "--workers", "1", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
 
 # gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
