@@ -72,7 +72,11 @@ class Detector(InstrumentedDetector):
         """
         Load and configure the model and tokenizer.
         """
-        self.tokenizer = AutoTokenizer.from_pretrained(model_files_path, use_fast=True)
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_files_path, use_fast=True)
+        except (ValueError, OSError, ImportError) as e:
+            logger.warning(f"Failed to load fast tokenizer: {e}. Falling back to slow tokenizer.")
+            self.tokenizer = AutoTokenizer.from_pretrained(model_files_path, use_fast=False)
         config = AutoConfig.from_pretrained(model_files_path)
         logger.info(f"Model Config: {config}")
 
