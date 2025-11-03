@@ -12,7 +12,7 @@ The following rules apply:
    2) Boolean responses of `true` are considered a detection 
       * see the `over_100_characters` example in [custom_detectors.py](detectors/built_in/custom_detectors/custom_detectors.py) for usage
    3) Dict response that are parseable as a `ContentAnalysisResponse` object are considered a detection
-      * see the `contains_word` example in [custom_detectors.py](detectors/built_in/custom_detectors/custom_detectors.py) for ursage
+      * see the `contains_word` example in [custom_detectors.py](detectors/built_in/custom_detectors/custom_detectors.py) for usage
 4) This code may not import `os`, `subprocess`, `sys`, or `shutil` for security reasons
 5) This code may not call `eval`, `exec`, `open`, `compile`, or `input` for security reasons
 
