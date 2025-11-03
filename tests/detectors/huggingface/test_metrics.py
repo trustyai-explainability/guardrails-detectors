@@ -9,6 +9,7 @@ import pytest
 import torch
 from starlette.testclient import TestClient
 
+from detectors.common.app import METRIC_PREFIX
 from detectors.huggingface.detector import Detector
 from detectors.huggingface.app import app
 
@@ -71,7 +72,7 @@ class TestMetrics:
 
         detector.model = ModelMock()
         app.set_detector(detector, detector.registry_name)
-        detector.add_instruments(app.state.instruments)
+        detector.set_instruments(app.state.instruments)
         return TestClient(app)
 
 
@@ -81,9 +82,9 @@ class TestMetrics:
             send_request(client=client, detect=i%3==0)
 
         expected_results = {
-            'trustyai_guardrails_detections_total{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}': 7.0,
-            'trustyai_guardrails_errors_total{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}': 0.0,
-            'trustyai_guardrails_requests_total{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}': 20.0,
+            f'{METRIC_PREFIX}_detections_total{{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}}': 7.0,
+            f'{METRIC_PREFIX}_errors_total{{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}}': 0.0,
+            f'{METRIC_PREFIX}_requests_total{{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}}': 20.0,
         }
 
         metric_dict = get_metric_dict(client)
@@ -99,6 +100,6 @@ class TestMetrics:
             send_request(client=client, detect=False, slow=True)
         metric_dict = get_metric_dict(client)
 
-        func_runtime = metric_dict['trustyai_guardrails_runtime_total{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}']
+        func_runtime = metric_dict[f'{METRIC_PREFIX}_runtime_total{{detector_kind="sequence_classifier",detector_name="BertForSequenceClassification"}}']
         assert func_runtime > 1.8
         assert func_runtime < 2.2
