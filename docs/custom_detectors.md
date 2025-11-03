@@ -1,6 +1,6 @@
 # Custom Detectors
 You can overwrite [custom_detectors.py](detectors/built_in/custom_detectors/custom_detectors.py) to create
-custom detectors in the built-in server based off of arbitrary Python code. This lets you quickly and flexible
+custom detectors in the built-in server based off of arbitrary Python code. This lets you quickly and flexibly
 create your own detection logic!
 
 The following rules apply:
