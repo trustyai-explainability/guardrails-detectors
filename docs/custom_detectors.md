@@ -20,7 +20,7 @@ The following rules apply:
 ## Utility Decorators
 The following decorators are also available, and are automatically imported into the custom_detectors.py file:
 
-### `@use_instruments(instruments=[$INSTRUMENT_1, ..., $INSTRUMENT_N]`
+### `@use_instruments(instruments=[$INSTRUMENT_1, ..., $INSTRUMENT_N])`
  Use this decorator to register your own Prometheus instruments with the server's main
  `/metrics` registry. See the `function_that_has_prometheus_metrics` example 
  in [custom_detectors.py](detectors/built_in/custom_detectors/custom_detectors.py) for usage.
