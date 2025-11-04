@@ -7,7 +7,7 @@ import uvicorn
 import yaml
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from prometheus_client import Counter
+from prometheus_client import Counter, CollectorRegistry
 
 import logging
 
@@ -28,6 +28,7 @@ app = FastAPI(
     dependencies=[],
 )
 
+METRIC_PREFIX = "trustyai_guardrails"
 
 class DetectorBaseAPI(FastAPI):
     def __init__(self, *args, **kwargs):
@@ -35,22 +36,22 @@ class DetectorBaseAPI(FastAPI):
         self.state.detectors = {}
         self.state.instruments = {
             "detections": Counter(
-                "trustyai_guardrails_detections",
+                f"{METRIC_PREFIX}_detections",
                 "Number of detections per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "requests": Counter(
-                "trustyai_guardrails_requests",
+                f"{METRIC_PREFIX}_requests",
                 "Number of requests per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "errors": Counter(
-                "trustyai_guardrails_errors",
+                f"{METRIC_PREFIX}_errors",
                 "Number of errors per detector function",
                 ["detector_kind", "detector_name"]
             ),
             "runtime": Counter(
-                "trustyai_guardrails_runtime",
+                f"{METRIC_PREFIX}_runtime",
                 "Total runtime of a detector function- this is the induced latency of this guardrail",
                 ["detector_kind", "detector_name"]
             )
@@ -61,7 +62,6 @@ class DetectorBaseAPI(FastAPI):
         )
         self.add_exception_handler(StarletteHTTPException, self.http_exception_handler)
         self.add_api_route("/health", health, description="Check if server is alive")
-
 
     async def validation_exception_handler(self, request, exc):
         errors = exc.errors()

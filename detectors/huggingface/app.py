@@ -16,7 +16,7 @@ from detectors.common.scheme import (
 async def lifespan(app: FastAPI):
     detector = Detector()
     app.set_detector(detector, detector.model_name)
-    detector.add_instruments(app.state.instruments)
+    detector.set_instruments(app.state.instruments)
     yield
     # Clean up the ML models and release the resources
     detector: Detector = app.get_detector()

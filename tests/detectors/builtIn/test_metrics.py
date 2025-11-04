@@ -1,8 +1,13 @@
 import enum
 import os
+import time
+
 import pytest
 from starlette.testclient import TestClient
 
+
+# DO NOT IMPORT THIS VALUE, if we import common.app before the test fixtures we can break prometheus multiprocessing
+METRIC_PREFIX = "trustyai_guardrails"
 
 CUSTOM_DETECTORS_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -12,7 +17,7 @@ CUSTOM_DETECTORS_PATH = os.path.join(
 with open(CUSTOM_DETECTORS_PATH) as f:
     ORIGINAL_CODE = f.read()
 
-METRIC_TEST_CODE = '''
+METRIC_TEST_CODE = f'''\
 def throws_error(text: str) -> bool:
     if text == "illegal":
         return True
@@ -25,6 +30,31 @@ import time
 def slow_func(text: str) -> bool:
     time.sleep(.25)
     return False
+    
+from prometheus_client import Counter
+
+prompt_rejection_counter = Counter(
+    "{METRIC_PREFIX}_system_prompt_rejections",
+    "Number of rejections by the system prompt",
+)
+  
+@use_instruments(instruments=[prompt_rejection_counter])  
+def has_metrics(text: str) -> bool:
+    if "sorry" in text:
+        prompt_rejection_counter.inc()
+    return False
+    
+background_metric = Counter(
+    "{METRIC_PREFIX}_background_metric",
+    "Runs some logic in the background without blocking the /detections call"
+)
+@use_instruments(instruments=[background_metric])
+@non_blocking(return_value=False)
+def background_function(text: str) -> bool:
+    time.sleep(.25)
+    if "sorry" in text:
+        background_metric.inc()     
+    return False
 '''
 
 
@@ -35,6 +65,15 @@ def write_code_to_custom_detectors(code: str):
 def restore_original_code():
     write_code_to_custom_detectors(ORIGINAL_CODE)
 
+
+def wait_for_metric(client, metric_name, expected_value, timeout=10):
+    start = time.time()
+    while time.time() - start < timeout:
+        metric_dict = get_metric_dict(client)
+        if metric_dict.get(metric_name, 0) == expected_value:
+            return True
+        time.sleep(0.1)
+    raise AssertionError(f"Metric {metric_name} did not reach {expected_value} in {timeout} seconds")
 
 class DetectorOutcome(enum.Enum):
     PASS = 0
@@ -112,7 +151,7 @@ def get_metric_dict(client: TestClient):
     metric_dict = {}
 
     for m in metrics:
-        if "trustyai" in m and "{" in m:
+        if METRIC_PREFIX in m and "HELP" not in m and "TYPE" not in m:
             key, value = m.split(" ")
             metric_dict[key] = float(value)
 
@@ -123,11 +162,16 @@ class TestMetrics:
     @pytest.fixture
     def client(self):
         write_code_to_custom_detectors(METRIC_TEST_CODE)
+
         from detectors.built_in.app import app
+
+        # clear the metric registry at the start of each test, but AFTER the multiprocessing metrics is set up
+        import prometheus_client
+        prometheus_client.REGISTRY._names_to_collectors.clear()
+
         from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
         from detectors.built_in.regex_detectors import RegexDetectorRegistry
         from detectors.built_in.file_type_detectors import FileTypeDetectorRegistry
-
 
         for detector_registry in [
             RegexDetectorRegistry(),
@@ -135,14 +179,14 @@ class TestMetrics:
             CustomDetectorRegistry()
         ]:
             app.set_detector(detector_registry, detector_registry.registry_name)
-            detector_registry.add_instruments(app.state.instruments)
+            detector_registry.set_instruments(app.state.instruments)
         return TestClient(app)
 
     @pytest.fixture(autouse=True)
     def cleanup_custom_detectors(self):
-        # Always restore safe code after test
         yield
         restore_original_code()
+
 
 
     def test_prometheus(self, client: TestClient):
@@ -169,20 +213,21 @@ class TestMetrics:
 
 
         expected_results = {
-            'trustyai_guardrails_detections_total{detector_kind="regex",detector_name="custom_regex"}': 7.0,
-            'trustyai_guardrails_errors_total{detector_kind="regex",detector_name="custom_regex"}': 1.0,
-            'trustyai_guardrails_requests_total{detector_kind="regex",detector_name="custom_regex"}': 10.0,
+            f'{METRIC_PREFIX}_detections_total{{detector_kind="regex",detector_name="custom_regex"}}': 7.0,
+            f'{METRIC_PREFIX}_errors_total{{detector_kind="regex",detector_name="custom_regex"}}': 1.0,
+            f'{METRIC_PREFIX}_requests_total{{detector_kind="regex",detector_name="custom_regex"}}': 10.0,
 
-            'trustyai_guardrails_detections_total{detector_kind="file_type",detector_name="json"}': 6.0,
-            'trustyai_guardrails_errors_total{detector_kind="file_type",detector_name="json"}': 0.0,
-            'trustyai_guardrails_requests_total{detector_kind="file_type",detector_name="json"}': 10.0,
+            f'{METRIC_PREFIX}_detections_total{{detector_kind="file_type",detector_name="json"}}': 6.0,
+            f'{METRIC_PREFIX}_errors_total{{detector_kind="file_type",detector_name="json"}}': 0.0,
+            f'{METRIC_PREFIX}_requests_total{{detector_kind="file_type",detector_name="json"}}': 10.0,
 
-            'trustyai_guardrails_detections_total{detector_kind="custom",detector_name="throws_error"}': 30.0,
-            'trustyai_guardrails_errors_total{detector_kind="custom",detector_name="throws_error"}': 20.0,
-            'trustyai_guardrails_requests_total{detector_kind="custom",detector_name="throws_error"}': 100.0,
+            f'{METRIC_PREFIX}_detections_total{{detector_kind="custom",detector_name="throws_error"}}': 30.0,
+            f'{METRIC_PREFIX}_errors_total{{detector_kind="custom",detector_name="throws_error"}}': 20.0,
+            f'{METRIC_PREFIX}_requests_total{{detector_kind="custom",detector_name="throws_error"}}': 100.0,
         }
 
         metric_dict = get_metric_dict(client)
+        print(metric_dict)
 
         for expected_key, expected_val in expected_results.items():
             assert expected_key in metric_dict, f"expected key {expected_key} not found in metric dict"
@@ -199,6 +244,44 @@ class TestMetrics:
             client.post("/api/v1/text/contents", json=payload)
         metric_dict = get_metric_dict(client)
 
-        func_runtime = metric_dict['trustyai_guardrails_runtime_total{detector_kind="custom",detector_name="slow_func"}']
+        func_runtime = metric_dict[f'{METRIC_PREFIX}_runtime_total{{detector_kind="custom",detector_name="slow_func"}}']
         assert func_runtime > 1.8
         assert func_runtime < 2.2
+
+
+    def test_user_metrics(self, client: TestClient):
+        # ensure that metrics created by the user are visible
+        for i in range(8):
+            payload = {
+                "contents": ["sorry I can't help"] if i%2==0 else ["a different response"],
+                "detector_params": {"custom": ["has_metrics"]}
+            }
+            client.post("/api/v1/text/contents", json=payload)
+        metric_dict = get_metric_dict(client)
+        print(metric_dict)
+        assert metric_dict[f'{METRIC_PREFIX}_detections_total{{detector_kind="custom",detector_name="has_metrics"}}'] == 0
+        assert metric_dict[f"{METRIC_PREFIX}_system_prompt_rejections_total"] == 4
+
+
+    def test_non_blocking_metrics(self, client: TestClient):
+        # ensure that metrics created by the user are visible
+        start_time = time.time()
+        for i in range(100):
+            payload = {
+                "contents": ["sorry I can't help"] if i%2==0 else ["a different response"],
+                "detector_params": {"custom": ["background_function"]}
+            }
+            client.post("/api/v1/text/contents", json=payload)
+        call_time = time.time()
+
+        # each call to background function contains a `time.sleep(.25)` call - if the function logic is
+        # correctly sent to a background thread, these calls should take much less than 100 * .25 = 25 seconds
+        assert call_time - start_time < 0.5
+
+        # this will wait for the long-running background threads to finish
+        wait_for_metric(client, f"{METRIC_PREFIX}_background_metric_total", 50)
+        metric_dict = get_metric_dict(client)
+
+        # check that the reported runtime of the functions matches the _call_ time, not the calculation time
+        func_runtime = metric_dict[f'{METRIC_PREFIX}_runtime_total{{detector_kind="custom",detector_name="background_function"}}']
+        assert func_runtime < 0.5
