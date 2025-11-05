@@ -17,8 +17,11 @@ class InstrumentedDetector:
         finally:
             pass
 
-    def add_instruments(self, gauges):
-        self.instruments = gauges
+    def set_instruments(self, instruments):
+        self.instruments = instruments
+
+    def add_instrument(self, instrument):
+        self.instruments[instrument._name] = instrument
 
     def increment_detector_instruments(self, function_name: str, is_detection: bool):
         """Increment the detection and request counters, automatically update rates"""

@@ -7,8 +7,8 @@ from regex_detectors import RegexDetectorRegistry
 from custom_detectors_wrapper import CustomDetectorRegistry
 from file_type_detectors import FileTypeDetectorRegistry
 
-from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Gauge
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry, multiprocess
+from starlette.responses import Response
 from detectors.common.scheme import ContentAnalysisHttpRequest,  ContentsAnalysisResponse
 from detectors.common.app import DetectorBaseAPI as FastAPI
 
@@ -21,16 +21,22 @@ async def lifespan(app: FastAPI):
         CustomDetectorRegistry()
     ]:
         app.set_detector(detector_registry, detector_registry.registry_name)
-        detector_registry.add_instruments(app.state.instruments)
+        detector_registry.set_instruments(app.state.instruments)
     yield
     app.cleanup_detector()
 
 
 app = FastAPI(lifespan=lifespan)
-Instrumentator().instrument(app).expose(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+@app.get("/metrics")
+def metrics():
+    registry = CollectorRegistry()
+    multiprocess.MultiProcessCollector(registry)
+    data = generate_latest(registry)
+    return Response(data, media_type=CONTENT_TYPE_LATEST)
 
 @app.post("/api/v1/text/contents", response_model=ContentsAnalysisResponse)
 def detect_content(request: ContentAnalysisHttpRequest, raw_request: Request):
