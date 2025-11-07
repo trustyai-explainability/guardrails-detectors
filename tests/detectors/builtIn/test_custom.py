@@ -112,4 +112,3 @@ class TestCustomDetectors:
         }
         resp = client.post("/api/v1/text/contents", json=payload)
         assert resp.status_code == 400 and "Unrecognized custom function: abc" in resp.text
-
