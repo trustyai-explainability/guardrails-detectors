@@ -35,6 +35,11 @@ class TestCustomDetectors:
     @pytest.fixture
     def client(self):
         from detectors.built_in.app import app
+
+        # clear the metric registry at the start of each test, but AFTER the multiprocessing metrics is set up
+        import prometheus_client
+        prometheus_client.REGISTRY._names_to_collectors.clear()
+
         from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
         app.set_detector(CustomDetectorRegistry(), "custom")
         return TestClient(app)
@@ -95,6 +100,30 @@ class TestCustomDetectors:
         assert resp.status_code == 200
         texts = [d["text"] for d in resp.json()[0]]
         assert msg in texts
+
+    def test_custom_detectors_need_kwargs(self, client):
+        msg = "What is an banana?"
+        payload1 = {
+            "contents": [msg],
+            "detector_params": {"custom": {"function_that_needs_kwargs": {"magic-key": "123"}}}
+        }
+        payload2 = {
+            "contents": [msg],
+            "detector_params": {"custom": {"function_that_needs_kwargs": {"magic-key": "345"}}}
+        }
+
+        # shouldn't flag
+        resp = client.post("/api/v1/text/contents", json=payload1)
+        assert resp.status_code == 200
+        texts = [d["text"] for d in resp.json()[0]]
+        assert msg not in texts
+
+        # should flag
+        resp = client.post("/api/v1/text/contents", json=payload2)
+        assert resp.status_code == 200
+        texts = [d["text"] for d in resp.json()[0]]
+        assert msg in texts
+
 
     def test_unsafe_code(self, client):
         write_code_to_custom_detectors(UNSAFE_CODE)

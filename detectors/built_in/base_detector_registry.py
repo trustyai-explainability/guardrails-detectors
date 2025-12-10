@@ -30,8 +30,13 @@ class BaseDetectorRegistry(InstrumentedDetector, ABC):
 
     def get_detection_functions_from_params(self, params: dict):
         """Parse the request parameters to extract and normalize detection functions as iterable list"""
-        if self.registry_name in params and isinstance(params[self.registry_name], (list, str)):
+        if self.registry_name in params and isinstance(params[self.registry_name], (list, str, dict)):
             funcs = params[self.registry_name]
-            return [funcs] if isinstance(funcs, str) else funcs
+            if isinstance(funcs, str):
+                return [funcs]
+            elif isinstance(funcs, dict):
+                return list(funcs.keys())
+            else:
+                return funcs
         else:
             return []
