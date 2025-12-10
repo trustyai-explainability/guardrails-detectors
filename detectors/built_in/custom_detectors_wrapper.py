@@ -5,6 +5,7 @@ import inspect
 import functools
 import os
 import sys
+import traceback
 
 from concurrent.futures import ThreadPoolExecutor
 from fastapi import HTTPException
@@ -66,14 +67,20 @@ def get_underlying_function(func):
     return func
 
 
-def custom_func_wrapper(func: Callable, func_name: str, s: str, headers: dict) -> Optional[ContentAnalysisResponse]:
+def custom_func_wrapper(func: Callable, func_name: str, s: str, headers: dict, func_kwargs: dict=None) -> Optional[ContentAnalysisResponse]:
     """Convert a some f(text)->bool into a Detector response"""
     sig = inspect.signature(func)
     try:
         if headers is not None:
-            result = func(s, headers)
+            if func_kwargs is None:
+                result = func(s, headers=headers)
+            else:
+                result = func(s, headers=headers, **func_kwargs)
         else:
-            result = func(s)
+            if func_kwargs is None:
+                result = func(s)
+            else:
+                result = func(s, **func_kwargs)
 
     except Exception as e:
         logging.error(f"Error when computing custom detector function {func_name}: {e}")
@@ -171,7 +178,13 @@ class CustomDetectorRegistry(BaseDetectorRegistry):
         self.registry = {name: obj for name, obj
                          in inspect.getmembers(custom_detectors, inspect.isfunction)
                          if not name.startswith("_") and name not in forbidden_names}
-        self.function_needs_headers = {name: "headers" in inspect.signature(obj).parameters for name, obj in self.registry.items() }
+
+        self.function_needs_headers = {}
+        self.function_needs_kwargs = {}
+        for name, obj in self.registry.items():
+            self.function_needs_headers[name] = "headers" in inspect.signature(obj).parameters
+            self.function_needs_kwargs[name] = "kwargs" in inspect.signature(obj).parameters
+
 
         # check if functions have requested user prometheus metrics
         for name, func in self.registry.items():
@@ -190,8 +203,14 @@ class CustomDetectorRegistry(BaseDetectorRegistry):
             if self.registry.get(custom_function_name):
                 try:
                     func_headers = headers if self.function_needs_headers.get(custom_function_name) else None
+
+                    if self.function_needs_kwargs.get(custom_function_name)and isinstance(detector_params[self.registry_name][custom_function_name], dict):
+                        func_kwargs = detector_params[self.registry_name][custom_function_name]
+                    else:
+                        func_kwargs = None
+
                     with self.instrument_runtime(custom_function_name):
-                        result = custom_func_wrapper(self.registry[custom_function_name], custom_function_name, content, func_headers)
+                        result = custom_func_wrapper(self.registry[custom_function_name], custom_function_name, content, func_headers, func_kwargs)
                     is_detection = result is not None
                     self.increment_detector_instruments(custom_function_name, is_detection)
                     if is_detection:
