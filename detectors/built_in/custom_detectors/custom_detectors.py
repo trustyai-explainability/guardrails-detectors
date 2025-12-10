@@ -13,7 +13,7 @@ def over_100_characters(text: str) -> bool:
 def contains_word(text: str) -> dict:
     detection = "apple" in text.lower()
     if detection:
-        detection_position = text.find("apple")
+        detection_position = text.lower().find("apple")
         return {
             "start":detection_position,  # start position of detection in text
             "end": detection_position+5, # end position of detection in text
@@ -35,9 +35,10 @@ def function_that_needs_kwargs(text: str, **kwargs: dict) -> bool:
     return kwargs['magic-key'] != "123"
 
 # === CUSTOM METRICS =====
+import time
 from prometheus_client import Counter
 prompt_rejection_counter = Counter(
-    "{METRIC_PREFIX}_system_prompt_rejections",
+    "system_prompt_rejections",
     "Number of rejections by the system prompt",
 )
 @use_instruments(instruments=[prompt_rejection_counter])
@@ -48,7 +49,7 @@ def has_metrics(text: str) -> bool:
 
 
 background_metric = Counter(
-    "{METRIC_PREFIX}_background_metric",
+    "background_metric",
     "Runs some logic in the background without blocking the /detections call"
 )
 @use_instruments(instruments=[background_metric])

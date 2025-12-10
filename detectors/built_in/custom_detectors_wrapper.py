@@ -73,7 +73,7 @@ def custom_func_wrapper(func: Callable, func_name: str, s: str, headers: dict, f
     try:
         if headers is not None:
             if func_kwargs is None:
-                result = func(s, headers)
+                result = func(s, headers=headers)
             else:
                 result = func(s, headers=headers, **func_kwargs)
         else:

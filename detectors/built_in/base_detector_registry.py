@@ -35,7 +35,7 @@ class BaseDetectorRegistry(InstrumentedDetector, ABC):
             if isinstance(funcs, str):
                 return [funcs]
             elif isinstance(funcs, dict):
-                return funcs.keys()
+                return list(funcs.keys())
             else:
                 return funcs
         else:
