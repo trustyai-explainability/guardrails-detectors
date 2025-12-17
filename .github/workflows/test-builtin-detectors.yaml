@@ -1,0 +1,50 @@
+name: Tier 1 - Built-in detectors unit tests
+
+on:
+  push:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/built_in/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/builtIn/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-builtin-detectors.yaml'
+  pull_request:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/built_in/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/builtIn/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-builtin-detectors.yaml'
+
+jobs:
+  test-builtin-detectors:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Common test setup
+      uses: ./.github/actions/test-setup
+      with:
+        component_name: 'builtin'
+        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/built_in/requirements.txt'
+        precommit_paths: 'detectors/built_in tests/detectors/builtIn detectors/common'
+        python_version: ${{ matrix.python-version }}
+        needs_system_deps: 'false'
+
+    - name: Run Built-in Detector Tests
+      run: |
+        pytest tests/detectors/builtIn/ \
+          --cov=detectors.built_in \
+          --cov-report=term-missing \
+          -v
