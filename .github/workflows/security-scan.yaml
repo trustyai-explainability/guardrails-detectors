@@ -62,7 +62,7 @@ jobs:
         output: 'trivy-results-${{ matrix.component.name }}.sarif'
         severity: 'MEDIUM,HIGH,CRITICAL'
         exit-code: '0'
-        scanners: 'vuln,secret,config'
+        scanners: 'vuln,secret'
 
     - name: Run Trivy configuration scanner
       uses: aquasecurity/trivy-action@0.28.0
@@ -83,7 +83,7 @@ jobs:
 
     - name: Upload configuration scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3
-      if: hashFiles('trivy-config-${{ matrix.component.name }}.sarif') != ''
+      if: hashFiles(format('trivy-config-{0}.sarif', matrix.component.name)) != ''
       with:
         sarif_file: 'trivy-config-${{ matrix.component.name }}.sarif'
         category: '${{ matrix.component.name }}-config'
@@ -130,7 +130,7 @@ jobs:
         output: 'trivy-repository-results.sarif'
         severity: 'HIGH,CRITICAL'
         exit-code: '0'
-        scanners: 'vuln,secret,config'
+        scanners: 'vuln,secret'
 
     - name: Upload repository scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v3

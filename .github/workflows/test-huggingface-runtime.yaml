@@ -35,50 +35,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Common test setup
+      uses: ./.github/actions/test-setup
       with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-hf-${{ hashFiles('detectors/huggingface/requirements.txt', 'detectors/common/requirements.txt', 'detectors/common/requirements-dev.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-hf-
-          ${{ runner.os }}-pip-
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends \
-          build-essential \
-          wget
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        # Install test dependencies
-        pip install pytest-cov
-        # Install common requirements
-        pip install -r detectors/common/requirements.txt
-        pip install -r detectors/common/requirements-dev.txt
-        # Install Hugging Face runtime requirements (includes torch)
-        pip install -r detectors/huggingface/requirements.txt
-
-    - name: Set Python path
-      run: |
-        echo "PYTHONPATH=$GITHUB_WORKSPACE/detectors/huggingface:$GITHUB_WORKSPACE/detectors/llm_judge:$GITHUB_WORKSPACE/detectors:$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
-    - name: Lint with pre-commit (if available)
-      run: |
-        if [ -f .pre-commit-config.yaml ]; then
-          pre-commit run --files detectors/huggingface/**/* tests/detectors/huggingface/**/*
-        else
-          echo "No pre-commit config found, skipping linting"
-        fi
-      continue-on-error: true
+        component_name: 'huggingface'
+        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/huggingface/requirements.txt'
+        precommit_paths: 'detectors/huggingface tests/detectors/huggingface detectors/common'
+        python_version: ${{ matrix.python-version }}
+        needs_system_deps: 'true'
 
     - name: Verify dummy models are available
       run: |

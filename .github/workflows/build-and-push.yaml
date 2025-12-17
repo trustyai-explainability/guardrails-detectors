@@ -8,7 +8,6 @@ on:
       - "Tier 1 - LLM Judge unit tests"
     types:
       - completed
-    branches: [main, incubation, stable]
 
   # Direct triggers (tests will run in parallel)
   push:
@@ -29,9 +28,13 @@ jobs:
   # Ensure that tests pass before publishing a new image.
   build-and-push-ci:
     # Only run if:
-    # 1. Tests completed successfully (from workflow_run trigger), OR
+    # 1. Tests completed successfully on target branches (from workflow_run trigger), OR
     # 2. Direct push/PR trigger (tests will run in parallel)
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run'
+    if: |
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       contains(fromJSON('["main", "incubation", "stable"]'), github.event.workflow_run.head_branch)) ||
+      (github.event_name != 'workflow_run')
     runs-on: ubuntu-latest
     permissions:
       contents: read
