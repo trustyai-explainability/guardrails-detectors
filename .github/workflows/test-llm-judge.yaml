@@ -1,0 +1,116 @@
+name: Tier 1 - LLM Judge unit tests
+
+on:
+  push:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/llm_judge/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/llm_judge/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-llm-judge.yaml'
+  pull_request:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/llm_judge/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/llm_judge/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-llm-judge.yaml'
+
+jobs:
+  test-llm-judge:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-llm-judge-${{ hashFiles('detectors/llm_judge/requirements.txt', 'detectors/common/requirements.txt', 'detectors/common/requirements-dev.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-llm-judge-
+          ${{ runner.os }}-pip-
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential \
+          wget
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install common requirements
+        pip install -r detectors/common/requirements.txt
+        pip install -r detectors/common/requirements-dev.txt
+        # Install LLM Judge requirements
+        pip install -r detectors/llm_judge/requirements.txt
+        # Install project in development mode
+        pip install -e .
+
+    - name: Lint with pre-commit (if available)
+      run: |
+        if [ -f .pre-commit-config.yaml ]; then
+          pre-commit run --files detectors/llm_judge/**/* tests/detectors/llm_judge/**/*
+        else
+          echo "No pre-commit config found, skipping linting"
+        fi
+      continue-on-error: true
+
+    - name: Verify vllm-judge installation
+      run: |
+        python -c "
+        try:
+            import vllm_judge
+            print('vllm-judge import successful')
+            print(f'vllm-judge version: {vllm_judge.__version__}')
+        except Exception as e:
+            print(f'Error importing vllm-judge: {e}')
+            print('This may be expected if running without GPU resources')
+        "
+
+    - name: Run LLM Judge Tests
+      timeout-minutes: 15
+      run: |
+        pytest tests/detectors/llm_judge/ \
+          --cov=detectors.llm_judge \
+          --cov-report=term-missing \
+          -v \
+          --tb=short
+
+    - name: Test LLM Judge detector initialization
+      timeout-minutes: 5
+      run: |
+        python -c "
+        try:
+            from detectors.llm_judge.detector import LLMJudgeDetector
+            print('LLMJudgeDetector import successful')
+
+            # Test basic initialization (may fail without proper model access)
+            try:
+                detector = LLMJudgeDetector()
+                print('LLMJudgeDetector initialization successful')
+            except Exception as init_e:
+                print(f'Note: LLMJudgeDetector initialization failed (may require specific models): {init_e}')
+        except Exception as e:
+            print(f'Error testing LLM Judge detector: {e}')
+            exit(1)
+        "
+        echo "LLM Judge detector verification complete"

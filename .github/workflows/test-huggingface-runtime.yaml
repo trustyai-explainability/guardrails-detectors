@@ -1,0 +1,122 @@
+name: Tier 1 - Hugging Face Runtime unit tests
+
+on:
+  push:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/huggingface/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/huggingface/**'
+      - 'tests/dummy_models/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-huggingface-runtime.yaml'
+  pull_request:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/huggingface/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/huggingface/**'
+      - 'tests/dummy_models/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-huggingface-runtime.yaml'
+
+jobs:
+  test-huggingface-runtime:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-hf-${{ hashFiles('detectors/huggingface/requirements.txt', 'detectors/common/requirements.txt', 'detectors/common/requirements-dev.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-hf-
+          ${{ runner.os }}-pip-
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential \
+          wget
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install common requirements
+        pip install -r detectors/common/requirements.txt
+        pip install -r detectors/common/requirements-dev.txt
+        # Install Hugging Face runtime requirements (includes torch)
+        pip install -r detectors/huggingface/requirements.txt
+        # Install project in development mode
+        pip install -e .
+
+    - name: Lint with pre-commit (if available)
+      run: |
+        if [ -f .pre-commit-config.yaml ]; then
+          pre-commit run --files detectors/huggingface/**/* tests/detectors/huggingface/**/*
+        else
+          echo "No pre-commit config found, skipping linting"
+        fi
+      continue-on-error: true
+
+    - name: Verify dummy models are available
+      run: |
+        ls -la tests/dummy_models/
+        echo "Checking for required test models..."
+        if [ ! -d "tests/dummy_models/bert" ]; then
+          echo "Warning: BERT dummy models not found"
+        fi
+        if [ ! -d "tests/dummy_models/gpt2" ]; then
+          echo "Warning: GPT2 dummy models not found"
+        fi
+
+    - name: Run Hugging Face Runtime Tests
+      timeout-minutes: 20
+      env:
+        HF_HOME: /tmp/huggingface
+        TRANSFORMERS_CACHE: /tmp/transformers_cache
+        TOKENIZERS_PARALLELISM: false
+      run: |
+        pytest tests/detectors/huggingface/ \
+          --cov=detectors.huggingface \
+          --cov-report=term-missing \
+          -v \
+          --tb=short
+
+    - name: Test model loading capabilities
+      timeout-minutes: 10
+      env:
+        HF_HOME: /tmp/huggingface
+        TRANSFORMERS_CACHE: /tmp/transformers_cache
+        TOKENIZERS_PARALLELISM: false
+      run: |
+        python -c "
+        try:
+            from detectors.huggingface.detector import HuggingFaceDetector
+            print('HuggingFaceDetector import successful')
+
+            # Test basic initialization
+            detector = HuggingFaceDetector()
+            print('HuggingFaceDetector initialization successful')
+        except Exception as e:
+            print(f'Error testing HF detector: {e}')
+            exit(1)
+        "
+        echo "Model loading verification complete"

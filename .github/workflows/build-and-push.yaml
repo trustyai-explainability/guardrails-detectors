@@ -1,8 +1,21 @@
 name: Build and Push - Detectors
 on:
+  # Trigger on successful test completion
+  workflow_run:
+    workflows:
+      - "Tier 1 - Built-in detectors unit tests"
+      - "Tier 1 - Hugging Face Runtime unit tests"
+      - "Tier 1 - LLM Judge unit tests"
+    types:
+      - completed
+    branches: [main, incubation, stable]
+
+  # Direct triggers (tests will run in parallel)
   push:
     branches:
       - main
+      - incubation
+      - stable
     tags:
       - v*
     paths:
@@ -15,11 +28,14 @@ on:
 jobs:
   # Ensure that tests pass before publishing a new image.
   build-and-push-ci:
+    # Only run if:
+    # 1. Tests completed successfully (from workflow_run trigger), OR
+    # 2. Direct push/PR trigger (tests will run in parallel)
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name != 'workflow_run'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
-      security-events: write
     env:
       PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       GITHUB_REF_NAME: ${{ github.ref_name }}
@@ -129,51 +145,3 @@ jobs:
             📦 [Huggingface PR image](https://quay.io/repository/trustyai/guardrails-detector-huggingface-runtime-ci?tab=tags): `quay.io/trustyai/guardrails-detector-huggingface-runtime-ci:$PR_HEAD_SHA`
             📦 [Built-in PR image](https://quay.io/trustyai/guardrails-detector-built-in-ci?tab=tags): `quay.io/trustyai/guardrails-detector-built-in-ci:$PR_HEAD_SHA`
             📦 [LLM Judge PR image](https://quay.io/trustyai/guardrails-detector-llm-judge-ci?tab=tags): `quay.io/trustyai/guardrails-detector-llm-judge-ci:$PR_HEAD_SHA`
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'image'
-          image-ref: "${{ env.IMAGE_NAME }}:${{ env.TAG }}"
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'MEDIUM,HIGH,CRITICAL'
-          exit-code: '0'
-          ignore-unfixed: false
-          vuln-type: 'os,library'
-      - name: Trivy scan, built-in image
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'image'
-          image-ref: "${{ env.BUILTIN_IMAGE_NAME }}:${{ env.TAG }}"
-          format: 'sarif'
-          output: 'trivy-results-built-in.sarif'
-          severity: 'MEDIUM,HIGH,CRITICAL'
-          exit-code: '0'
-          ignore-unfixed: false
-          vuln-type: 'os,library'
-      - name: Trivy scan, LLM Judge image
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: 'image'
-          image-ref: "${{ env.LLM_JUDGE_IMAGE_NAME }}:${{ env.TAG }}"
-          format: 'sarif'
-          output: 'trivy-results-llm-judge.sarif'
-          severity: 'MEDIUM,HIGH,CRITICAL'
-          exit-code: '0'
-          ignore-unfixed: false
-          vuln-type: 'os,library'
-      - name: Update Security tab - Huggingface
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results.sarif'
-          category: huggingface
-      - name: Update Security tab - Built-in
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results-built-in.sarif'
-          category: built-in
-      - name: Update Security tab - LLM Judge
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results-llm-judge.sarif'
-          category: llm-judge

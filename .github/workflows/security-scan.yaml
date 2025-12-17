@@ -1,0 +1,159 @@
+name: Tier 1 - Security scan
+
+on:
+  push:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/**'
+      - 'requirements*.txt'
+      - '*.py'
+      - '.github/workflows/security-scan.yaml'
+
+  pull_request:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/**'
+      - 'requirements*.txt'
+      - '*.py'
+      - '.github/workflows/security-scan.yaml'
+
+  # Manual trigger for security scans
+  workflow_dispatch:
+
+  # Scheduled security scans
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Mondays at 2 AM UTC
+
+jobs:
+  filesystem-security-scan:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        component:
+          - name: "builtin-detectors"
+            path: "detectors/built_in"
+          - name: "huggingface-runtime"
+            path: "detectors/huggingface"
+          - name: "llm-judge"
+            path: "detectors/llm_judge"
+          - name: "common"
+            path: "detectors/common"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log scan parameters
+      run: |
+        echo "Scanning filesystem path: ${{ matrix.component.path }}"
+        echo "Component: ${{ matrix.component.name }}"
+
+    - name: Run Trivy vulnerability scanner (filesystem)
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '${{ matrix.component.path }}'
+        format: 'sarif'
+        output: 'trivy-results-${{ matrix.component.name }}.sarif'
+        severity: 'MEDIUM,HIGH,CRITICAL'
+        exit-code: '0'
+        scanners: 'vuln,secret,config'
+
+    - name: Run Trivy configuration scanner
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'config'
+        scan-ref: '${{ matrix.component.path }}'
+        hide-progress: false
+        format: 'sarif'
+        output: 'trivy-config-${{ matrix.component.name }}.sarif'
+        exit-code: '0'
+      continue-on-error: true
+
+    - name: Upload vulnerability scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results-${{ matrix.component.name }}.sarif'
+        category: '${{ matrix.component.name }}-vulnerabilities'
+
+    - name: Upload configuration scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      if: hashFiles('trivy-config-${{ matrix.component.name }}.sarif') != ''
+      with:
+        sarif_file: 'trivy-config-${{ matrix.component.name }}.sarif'
+        category: '${{ matrix.component.name }}-config'
+
+    - name: Generate human-readable vulnerability report
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '${{ matrix.component.path }}'
+        format: 'table'
+        output: 'trivy-report-${{ matrix.component.name }}.txt'
+        severity: 'HIGH,CRITICAL'
+        exit-code: '0'
+        scanners: 'vuln,secret'
+
+    - name: Upload scan artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-${{ matrix.component.name }}
+        path: |
+          trivy-results-${{ matrix.component.name }}.sarif
+          trivy-config-${{ matrix.component.name }}.sarif
+          trivy-report-${{ matrix.component.name }}.txt
+        retention-days: 30
+
+  # Scan the entire repository root for additional security issues
+  repository-security-scan:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy repository scan
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-repository-results.sarif'
+        severity: 'HIGH,CRITICAL'
+        exit-code: '0'
+        scanners: 'vuln,secret,config'
+
+    - name: Upload repository scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-repository-results.sarif'
+        category: 'repository-wide-security'
+
+    - name: Generate repository security report
+      uses: aquasecurity/trivy-action@0.28.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'table'
+        output: 'trivy-repository-report.txt'
+        severity: 'HIGH,CRITICAL'
+        exit-code: '0'
+        scanners: 'vuln,secret'
+
+    - name: Upload repository scan artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-repository
+        path: |
+          trivy-repository-results.sarif
+          trivy-repository-report.txt
+        retention-days: 30
