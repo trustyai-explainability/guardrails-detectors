@@ -64,8 +64,10 @@ jobs:
         pip install -r detectors/common/requirements-dev.txt
         # Install Hugging Face runtime requirements (includes torch)
         pip install -r detectors/huggingface/requirements.txt
-        # Install project in development mode
-        pip install -e .
+
+    - name: Set Python path
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
     - name: Lint with pre-commit (if available)
       run: |

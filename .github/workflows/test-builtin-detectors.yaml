@@ -55,8 +55,10 @@ jobs:
         pip install -r detectors/common/requirements-dev.txt
         # Install built-in detector requirements
         pip install -r detectors/built_in/requirements.txt
-        # Install project in development mode
-        pip install -e .
+
+    - name: Set Python path
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
 
     - name: Lint with pre-commit (if available)
       run: |
