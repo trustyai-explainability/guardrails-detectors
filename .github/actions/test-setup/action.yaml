@@ -1,0 +1,95 @@
+name: 'Test Setup'
+description: 'Common setup for detector test workflows'
+
+inputs:
+  component_name:
+    description: 'Name of the component being tested (for caching)'
+    required: true
+  requirements_files:
+    description: 'Space-separated list of requirements files to install'
+    required: true
+  precommit_paths:
+    description: 'Space-separated list of paths to check with pre-commit'
+    required: false
+    default: ''
+  python_version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+  needs_system_deps:
+    description: 'Whether to install system dependencies (build-essential, wget)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python ${{ inputs.python_version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Generate cache key
+      id: cache-key
+      shell: bash
+      run: |
+        # Create a hash of all requirements files for cache key
+        CACHE_KEY="${{ runner.os }}-pip-${{ inputs.component_name }}-"
+        for file in ${{ inputs.requirements_files }}; do
+          if [ -f "$file" ]; then
+            CACHE_KEY="${CACHE_KEY}$(sha256sum $file | cut -d' ' -f1)-"
+          fi
+        done
+        echo "cache_key=${CACHE_KEY%%-}" >> $GITHUB_OUTPUT
+        echo "cache_restore_keys=${{ runner.os }}-pip-${{ inputs.component_name }}-" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ steps.cache-key.outputs.cache_key }}
+        restore-keys: |
+          ${{ steps.cache-key.outputs.cache_restore_keys }}
+          ${{ runner.os }}-pip-
+
+    - name: Install system dependencies
+      if: inputs.needs_system_deps == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential \
+          wget
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        # Install test dependencies
+        pip install pytest-cov
+        # Install component-specific requirements
+        for file in ${{ inputs.requirements_files }}; do
+          if [ -f "$file" ]; then
+            echo "Installing requirements from $file"
+            pip install -r "$file"
+          else
+            echo "Warning: Requirements file $file not found"
+          fi
+        done
+
+    - name: Set Python path
+      shell: bash
+      run: |
+        echo "PYTHONPATH=$GITHUB_WORKSPACE/detectors/huggingface:$GITHUB_WORKSPACE/detectors/llm_judge:$GITHUB_WORKSPACE/detectors:$GITHUB_WORKSPACE" >> $GITHUB_ENV
+
+    - name: Lint with pre-commit (if available)
+      if: inputs.precommit_paths != ''
+      shell: bash
+      run: |
+        if [ -f .pre-commit-config.yaml ]; then
+          # Run pre-commit on specified paths
+          find ${{ inputs.precommit_paths }} -name '*.py' 2>/dev/null | xargs -r pre-commit run --files
+        else
+          echo "No pre-commit config found, skipping linting"
+        fi
+      continue-on-error: true

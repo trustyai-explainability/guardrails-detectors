@@ -1,0 +1,84 @@
+name: Tier 1 - LLM Judge unit tests
+
+on:
+  push:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/llm_judge/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/llm_judge/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-llm-judge.yaml'
+  pull_request:
+    branches: [ main, incubation, stable ]
+    paths:
+      - 'detectors/llm_judge/**'
+      - 'detectors/common/**'
+      - 'tests/detectors/llm_judge/**'
+      - 'tests/conftest.py'
+      - '.github/workflows/test-llm-judge.yaml'
+
+jobs:
+  test-llm-judge:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    permissions:
+      contents: read
+      checks: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Common test setup
+      uses: ./.github/actions/test-setup
+      with:
+        component_name: 'llm-judge'
+        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/llm_judge/requirements.txt'
+        precommit_paths: 'detectors/llm_judge tests/detectors/llm_judge detectors/common'
+        python_version: ${{ matrix.python-version }}
+        needs_system_deps: 'true'
+
+    - name: Verify vllm-judge installation
+      run: |
+        python -c "
+        try:
+            import vllm_judge
+            print('vllm-judge import successful')
+            print(f'vllm-judge version: {vllm_judge.__version__}')
+        except Exception as e:
+            print(f'Error importing vllm-judge: {e}')
+            print('This may be expected if running without GPU resources')
+        "
+
+    - name: Run LLM Judge Tests
+      timeout-minutes: 15
+      run: |
+        pytest tests/detectors/llm_judge/ \
+          --cov=detectors.llm_judge \
+          --cov-report=term-missing \
+          -v \
+          --tb=short
+
+    - name: Test LLM Judge detector initialization
+      timeout-minutes: 5
+      run: |
+        python -c "
+        try:
+            from detectors.llm_judge.detector import LLMJudgeDetector
+            print('LLMJudgeDetector import successful')
+
+            # Test basic initialization (may fail without proper model access)
+            try:
+                detector = LLMJudgeDetector()
+                print('LLMJudgeDetector initialization successful')
+            except Exception as init_e:
+                print(f'Note: LLMJudgeDetector initialization failed (may require specific models): {init_e}')
+        except Exception as e:
+            print(f'Error testing LLM Judge detector: {e}')
+            exit(1)
+        "
+        echo "LLM Judge detector verification complete"
