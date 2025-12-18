@@ -61,6 +61,7 @@ class TestDetectorRun:
             detector.is_sequence_classifier = False
             detector.risk_names = ["harm", "bias"]
             detector.function_name = "test_causal_lm"
+            detector.instruments = {}  # Initialize empty instruments dict
 
             return detector
 

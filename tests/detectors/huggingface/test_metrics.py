@@ -5,7 +5,6 @@ from unittest.mock import Mock
 import pytest
 import torch
 from starlette.testclient import TestClient
-from prometheus_client import REGISTRY
 
 # DO NOT IMPORT THIS VALUE, if we import common.app before the test fixtures we can break prometheus multiprocessing
 METRIC_PREFIX = "trustyai_guardrails"
@@ -38,18 +37,7 @@ def get_metric_dict(client: TestClient):
     return metric_dict
 
 @pytest.fixture(scope="session")
-def client():
-    # Clear any existing metrics from the registry before importing the app
-    collectors_to_unregister = [
-        c for c in list(REGISTRY._collector_to_names.keys())
-        if hasattr(c, '_name') and 'trustyai_guardrails' in c._name
-    ]
-    for collector in collectors_to_unregister:
-        try:
-            REGISTRY.unregister(collector)
-        except Exception:
-            pass
-
+def client(prometheus_multiproc_dir):
     current_dir = os.path.dirname(__file__)
     parent_dir = os.path.dirname(os.path.dirname(current_dir))
     os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
