@@ -37,21 +37,11 @@ def get_metric_dict(client: TestClient):
     return metric_dict
 
 class TestMetrics:
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def client(self):
         current_dir = os.path.dirname(__file__)
         parent_dir = os.path.dirname(os.path.dirname(current_dir))
         os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
-
-        # Clear prometheus registry before importing to avoid duplicates
-        import prometheus_client
-        from prometheus_client import REGISTRY
-        collectors = list(REGISTRY._collector_to_names.keys())
-        for collector in collectors:
-            try:
-                REGISTRY.unregister(collector)
-            except Exception:
-                pass
 
         from detectors.huggingface.app import app
         from detectors.huggingface.detector import Detector
