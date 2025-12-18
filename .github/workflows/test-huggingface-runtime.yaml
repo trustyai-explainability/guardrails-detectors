@@ -77,12 +77,12 @@ jobs:
       run: |
         python -c "
         try:
-            from detectors.huggingface.detector import HuggingFaceDetector
-            print('HuggingFaceDetector import successful')
+            from detectors.huggingface.detector import Detector
+            print('Detector import successful')
 
             # Test basic initialization
-            detector = HuggingFaceDetector()
-            print('HuggingFaceDetector initialization successful')
+            detector = Detector()
+            print('Detector initialization successful')
         except Exception as e:
             print(f'Error testing HF detector: {e}')
             exit(1)
