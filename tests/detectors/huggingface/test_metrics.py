@@ -1,18 +1,13 @@
-import random
 import os
 import time
-from collections import namedtuple
-from unittest import mock
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import pytest
 import torch
 from starlette.testclient import TestClient
 
-from detectors.common.app import METRIC_PREFIX
-from detectors.huggingface.detector import Detector
-from detectors.huggingface.app import app
-
+# DO NOT IMPORT THIS VALUE, if we import common.app before the test fixtures we can break prometheus multiprocessing
+METRIC_PREFIX = "trustyai_guardrails"
 
 def send_request(client: TestClient, detect: bool, slow: bool = False):
     payload = {
@@ -48,6 +43,12 @@ class TestMetrics:
         parent_dir = os.path.dirname(os.path.dirname(current_dir))
         os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
 
+        from detectors.huggingface.app import app
+        # clear the metric registry at the start of each test, but AFTER the multiprocessing metrics is set up
+        import prometheus_client
+        prometheus_client.REGISTRY._names_to_collectors.clear()
+
+        from detectors.huggingface.detector import Detector
         detector = Detector()
 
         # patch the model to allow for control over detections - long messages will flag
