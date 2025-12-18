@@ -40,12 +40,9 @@ class TestDetector:
             "detection",
             "detection_type",
             "score",
-            "sequence_classification",
-            "sequence_probability",
-            "token_classifications",
-            "token_probabilities",
             "text",
             "evidences",
+            "metadata",
         ]
 
         for field in expected_fields:
@@ -59,12 +56,6 @@ class TestDetector:
         assert isinstance(result.detection, str), "detection should be string"
         assert isinstance(result.detection_type, str), "detection_type should be string"
         assert isinstance(result.score, float), "score should be float"
-        assert isinstance(
-            result.sequence_classification, str
-        ), "sequence_classification should be string"
-        assert isinstance(
-            result.sequence_probability, float
-        ), "sequence_probability should be float"
         assert isinstance(result.text, str), "text should be string"
         assert isinstance(result.evidences, list), "evidences should be list"
 
@@ -73,9 +64,6 @@ class TestDetector:
         ), "start should be within text bounds"
         assert 0 <= result.end <= len(input_text), "end should be within text bounds"
         assert 0.0 <= result.score <= 1.0, "score should be between 0 and 1"
-        assert (
-            0.0 <= result.sequence_probability <= 1.0
-        ), "sequence_probability should be between 0 and 1"
 
         return result
 

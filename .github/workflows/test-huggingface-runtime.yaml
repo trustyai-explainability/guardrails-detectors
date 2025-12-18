@@ -74,15 +74,16 @@ jobs:
         HF_HOME: /tmp/huggingface
         TRANSFORMERS_CACHE: /tmp/transformers_cache
         TOKENIZERS_PARALLELISM: false
+        MODEL_DIR: tests/dummy_models/bert/BertForSequenceClassification
       run: |
         python -c "
         try:
-            from detectors.huggingface.detector import HuggingFaceDetector
-            print('HuggingFaceDetector import successful')
+            from detectors.huggingface.detector import Detector
+            print('Detector import successful')
 
             # Test basic initialization
-            detector = HuggingFaceDetector()
-            print('HuggingFaceDetector initialization successful')
+            detector = Detector()
+            print('Detector initialization successful')
         except Exception as e:
             print(f'Error testing HF detector: {e}')
             exit(1)
