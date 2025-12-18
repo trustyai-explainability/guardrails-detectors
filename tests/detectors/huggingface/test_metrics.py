@@ -26,8 +26,10 @@ def send_request(client: TestClient, detect: bool, slow: bool = False):
 
 
 def get_metric_dict(client: TestClient):
-    metrics = client.get("/metrics")
-    metrics = metrics.content.decode().split("\n")
+    # In test mode with TestClient, we're running in a single process,
+    # so multiprocess mode doesn't work. Use the default REGISTRY directly.
+    from prometheus_client import generate_latest, REGISTRY
+    metrics = generate_latest(REGISTRY).decode().split("\n")
     metric_dict = {}
 
     for m in metrics:
