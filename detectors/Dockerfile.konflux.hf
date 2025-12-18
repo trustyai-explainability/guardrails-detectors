@@ -2,22 +2,21 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal as base
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib64:/usr/lib
 ARG TARGETARCH
 
-RUN microdnf update -y                                            && \
-    microdnf install -y --nodocs                                     \
-        python-pip python-devel                                   && \
-    pip install --upgrade --no-cache-dir pip wheel                && \
-    if [ "$TARGETARCH" = "ppc64le" ]; then                           \
-        microdnf install -y --nodocs                                 \
-            git gcc-toolset-13 rust cargo wget unzip              && \
-        pip install --upgrade --no-cache-dir 'cmake<4'             ; \
-    elif [ "$TARGETARCH" = "s390x" ]; then                           \
-        microdnf install -y --nodocs                                 \
-            git gcc-toolset-13 make wget unzip rust cargo            \
-            gcc-gfortran python3-devel openblas-devel pkgconfig   && \
-        pip install --upgrade --no-cache-dir 'cmake<4'               \
-                                        setuptools wheel           ; \
-    fi                                                            && \
+RUN microdnf install -y --nodocs python3-pip gcc                   && \
+    pip install --upgrade --no-cache-dir pip wheel                 && \
+    if [ "$TARGETARCH" = "ppc64le" ]; then                            \
+        microdnf install -y --nodocs                                  \
+            git gcc-toolset-13 rust cargo wget unzip               && \
+        pip install --upgrade --no-cache-dir 'cmake<4'              ; \
+    elif [ "$TARGETARCH" = "s390x" ]; then                            \
+        microdnf install -y --nodocs                                  \
+            git gcc-toolset-13 make wget unzip rust cargo             \
+            gcc-gfortran openblas-devel pkgconfig                  && \
+        pip install --upgrade --no-cache-dir 'cmake<4'                \
+                                        setuptools wheel            ; \
+    fi                                                             && \
     microdnf clean all
+
 
 RUN if [ "$TARGETARCH" != "ppc64le" ] && [ "$TARGETARCH" != "s390x" ]; then \
         pip install --no-cache-dir torch                            ; \
