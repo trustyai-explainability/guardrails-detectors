@@ -43,11 +43,17 @@ class TestMetrics:
         parent_dir = os.path.dirname(os.path.dirname(current_dir))
         os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
 
-        from detectors.huggingface.app import app
-        # clear the metric registry at the start of each test, but AFTER the multiprocessing metrics is set up
+        # Clear prometheus registry before importing to avoid duplicates
         import prometheus_client
-        prometheus_client.REGISTRY._names_to_collectors.clear()
+        from prometheus_client import REGISTRY
+        collectors = list(REGISTRY._collector_to_names.keys())
+        for collector in collectors:
+            try:
+                REGISTRY.unregister(collector)
+            except Exception:
+                pass
 
+        from detectors.huggingface.app import app
         from detectors.huggingface.detector import Detector
         detector = Detector()
 

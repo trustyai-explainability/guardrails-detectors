@@ -60,12 +60,9 @@ class TestDetector:
                 "detection",
                 "detection_type",
                 "score",
-                "sequence_classification",
-                "sequence_probability",
-                "token_classifications",
-                "token_probabilities",
                 "text",
                 "evidences",
+                "metadata",
             ]
 
             for field in expected_fields:
@@ -79,16 +76,12 @@ class TestDetector:
             assert isinstance(result.detection, str)
             assert isinstance(result.detection_type, str)
             assert isinstance(result.score, float)
-            assert isinstance(result.sequence_classification, str)
-            assert isinstance(result.sequence_probability, float)
             assert isinstance(result.text, str)
             assert isinstance(result.evidences, list)
 
             assert 0 <= result.start <= len(input_text)
             assert 0 <= result.end <= len(input_text)
             assert 0.0 <= result.score <= 1.0
-            assert 0.0 <= result.sequence_probability <= 1.0
-            assert result.sequence_classification in detector.risk_names
 
     def test_process_causal_lm_single_short_input(self, detector_instance):
         text = "This is a test."
