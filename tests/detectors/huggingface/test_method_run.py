@@ -60,6 +60,7 @@ class TestDetectorRun:
             detector.is_causal_lm = True
             detector.is_sequence_classifier = False
             detector.risk_names = ["harm", "bias"]
+            detector.function_name = "test_causal_lm"
 
             return detector
 
@@ -69,7 +70,8 @@ class TestDetectorRun:
 
         assert len(results) == 1
         assert isinstance(results[0][0], ContentAnalysisResponse)
-        assert results[0][0].detection_type == "sequence_classification"
+        # detection_type is the label from the model (e.g., "LABEL_1", not "sequence_classification")
+        assert results[0][0].detection_type in detector_sequence.model.config.id2label.values()
 
     def test_run_sequence_classifier_single_long_input(self, detector_sequence):
         request = ContentAnalysisHttpRequest(
@@ -82,7 +84,7 @@ class TestDetectorRun:
 
         assert len(results) == 1
         assert isinstance(results[0][0], ContentAnalysisResponse)
-        assert results[0][0].detection_type == "sequence_classification"
+        assert results[0][0].detection_type in detector_sequence.model.config.id2label.values()
 
     def test_run_sequence_classifier_empty_input(self, detector_sequence):
         request = ContentAnalysisHttpRequest(contents=[""], detector_params=None)
@@ -90,7 +92,7 @@ class TestDetectorRun:
 
         assert len(results) == 1
         assert isinstance(results[0][0], ContentAnalysisResponse)
-        assert results[0][0].detection_type == "sequence_classification"
+        assert results[0][0].detection_type in detector_sequence.model.config.id2label.values()
 
     def test_run_sequence_classifier_multiple_contents(self, detector_sequence):
         request = ContentAnalysisHttpRequest(contents=["Content 1", "Content 2"], detector_params=None)
@@ -100,12 +102,13 @@ class TestDetectorRun:
         for content_analysis in results:
             assert len(content_analysis) == 1
             assert isinstance(content_analysis[0], ContentAnalysisResponse)
-            assert content_analysis[0].detection_type == "sequence_classification"
+            assert content_analysis[0].detection_type in detector_sequence.model.config.id2label.values()
 
     def test_run_unsupported_model(self):
         detector = Detector.__new__(Detector)
         detector.is_causal_lm = False
         detector.is_sequence_classifier = False
+        detector.function_name = "test_detector"
 
         request = ContentAnalysisHttpRequest(contents=["Test content"], detector_params=None)
         with pytest.raises(ValueError, match="Unsupported model type for analysis"):
