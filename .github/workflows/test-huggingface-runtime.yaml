@@ -74,6 +74,7 @@ jobs:
         HF_HOME: /tmp/huggingface
         TRANSFORMERS_CACHE: /tmp/transformers_cache
         TOKENIZERS_PARALLELISM: false
+        MODEL_DIR: tests/dummy_models/bert/BertForSequenceClassification
       run: |
         python -c "
         try:
