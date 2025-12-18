@@ -3,6 +3,9 @@ from typing import List
 
 from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.concurrency import run_in_threadpool
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, CollectorRegistry, multiprocess
+from starlette.responses import Response
+
 from detectors.common.app import DetectorBaseAPI as FastAPI
 from detectors.huggingface.detector import Detector
 from detectors.common.scheme import (
@@ -24,9 +27,14 @@ async def lifespan(app: FastAPI):
         detector.close()
     app.cleanup_detector()
 
-
 app = FastAPI(lifespan=lifespan, dependencies=[])
-Instrumentator().instrument(app).expose(app)
+
+@app.get("/metrics")
+def metrics():
+    registry = CollectorRegistry()
+    multiprocess.MultiProcessCollector(registry)
+    data = generate_latest(registry)
+    return Response(data, media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post(
