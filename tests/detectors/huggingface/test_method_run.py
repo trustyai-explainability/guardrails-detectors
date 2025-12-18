@@ -64,7 +64,7 @@ class TestDetectorRun:
             return detector
 
     def test_run_sequence_classifier_single_short_input(self, detector_sequence):
-        request = ContentAnalysisHttpRequest(contents=["Test content"])
+        request = ContentAnalysisHttpRequest(contents=["Test content"], detector_params=None)
         results = detector_sequence.run(request)
 
         assert len(results) == 1
@@ -75,7 +75,8 @@ class TestDetectorRun:
         request = ContentAnalysisHttpRequest(
             contents=[
                 "This is a long content. " * 1_000,
-            ]
+            ],
+            detector_params=None
         )
         results = detector_sequence.run(request)
 
@@ -84,7 +85,7 @@ class TestDetectorRun:
         assert results[0][0].detection_type == "sequence_classification"
 
     def test_run_sequence_classifier_empty_input(self, detector_sequence):
-        request = ContentAnalysisHttpRequest(contents=[""])
+        request = ContentAnalysisHttpRequest(contents=[""], detector_params=None)
         results = detector_sequence.run(request)
 
         assert len(results) == 1
@@ -92,7 +93,7 @@ class TestDetectorRun:
         assert results[0][0].detection_type == "sequence_classification"
 
     def test_run_sequence_classifier_multiple_contents(self, detector_sequence):
-        request = ContentAnalysisHttpRequest(contents=["Content 1", "Content 2"])
+        request = ContentAnalysisHttpRequest(contents=["Content 1", "Content 2"], detector_params=None)
         results = detector_sequence.run(request)
 
         assert len(results) == 2
@@ -106,12 +107,12 @@ class TestDetectorRun:
         detector.is_causal_lm = False
         detector.is_sequence_classifier = False
 
-        request = ContentAnalysisHttpRequest(contents=["Test content"])
+        request = ContentAnalysisHttpRequest(contents=["Test content"], detector_params=None)
         with pytest.raises(ValueError, match="Unsupported model type for analysis"):
             detector.run(request)
 
     def test_run_causal_lm_single_short_input(self, detector_causal_lm):
-        request = ContentAnalysisHttpRequest(contents=["Test content"])
+        request = ContentAnalysisHttpRequest(contents=["Test content"], detector_params=None)
         results = detector_causal_lm.run(request)
 
         assert len(results) == 1
@@ -122,7 +123,8 @@ class TestDetectorRun:
         request = ContentAnalysisHttpRequest(
             contents=[
                 "This is a long content. " * 1_000,
-            ]
+            ],
+            detector_params=None
         )
         results = detector_causal_lm.run(request)
 
@@ -131,7 +133,7 @@ class TestDetectorRun:
         assert results[0][0].detection_type == "causal_lm"
 
     def test_run_causal_lm_empty_input(self, detector_causal_lm):
-        request = ContentAnalysisHttpRequest(contents=[""])
+        request = ContentAnalysisHttpRequest(contents=[""], detector_params=None)
         results = detector_causal_lm.run(request)
 
         assert len(results) == 1
@@ -139,7 +141,7 @@ class TestDetectorRun:
         assert results[0][0].detection_type == "causal_lm"
 
     def tes_run_causal_lm_multiple_contents(self, detector_causal_lm):
-        request = ContentAnalysisHttpRequest(contents=["Content 1", "Content 2"])
+        request = ContentAnalysisHttpRequest(contents=["Content 1", "Content 2"], detector_params=None)
         results = detector_causal_lm.run(request)
 
         assert len(results) == 2

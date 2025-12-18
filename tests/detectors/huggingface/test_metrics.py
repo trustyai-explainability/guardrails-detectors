@@ -36,41 +36,42 @@ def get_metric_dict(client: TestClient):
 
     return metric_dict
 
+@pytest.fixture(scope="session")
+def client():
+    current_dir = os.path.dirname(__file__)
+    parent_dir = os.path.dirname(os.path.dirname(current_dir))
+    os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
+
+    from detectors.huggingface.app import app
+    from detectors.huggingface.detector import Detector
+    detector = Detector()
+
+    # patch the model to allow for control over detections - long messages will flag
+    def detection_fn(*args, **kwargs):
+        output = Mock()
+        if kwargs["input_ids"].shape[-1] > 10:
+            output.logits = torch.tensor([[0.0, 1.0]])
+        else:
+            output.logits = torch.tensor([[1.0, 0.0]])
+
+        if kwargs["input_ids"].shape[-1] > 100:
+            time.sleep(.25)
+        return output
+
+    class ModelMock:
+        def __init__(self):
+            self.config = Mock()
+            self.config.id2label = detector.model.config.id2label
+            self.config.problem_type = detector.model.config.problem_type
+        def __call__(self, *args, **kwargs):
+            return detection_fn(*args, **kwargs)
+
+    detector.model = ModelMock()
+    app.set_detector(detector, detector.registry_name)
+    detector.set_instruments(app.state.instruments)
+    return TestClient(app)
+
 class TestMetrics:
-    @pytest.fixture(scope="class")
-    def client(self):
-        current_dir = os.path.dirname(__file__)
-        parent_dir = os.path.dirname(os.path.dirname(current_dir))
-        os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
-
-        from detectors.huggingface.app import app
-        from detectors.huggingface.detector import Detector
-        detector = Detector()
-
-        # patch the model to allow for control over detections - long messages will flag
-        def detection_fn(*args, **kwargs):
-            output = Mock()
-            if kwargs["input_ids"].shape[-1] > 10:
-                output.logits = torch.tensor([[0.0, 1.0]])
-            else:
-                output.logits = torch.tensor([[1.0, 0.0]])
-
-            if kwargs["input_ids"].shape[-1] > 100:
-                time.sleep(.25)
-            return output
-
-        class ModelMock:
-            def __init__(self):
-                self.config = Mock()
-                self.config.id2label = detector.model.config.id2label
-                self.config.problem_type = detector.model.config.problem_type
-            def __call__(self, *args, **kwargs):
-                return detection_fn(*args, **kwargs)
-
-        detector.model = ModelMock()
-        app.set_detector(detector, detector.registry_name)
-        detector.set_instruments(app.state.instruments)
-        return TestClient(app)
 
 
 
