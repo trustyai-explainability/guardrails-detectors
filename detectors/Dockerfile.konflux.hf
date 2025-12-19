@@ -2,22 +2,22 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal as base
 ENV LD_LIBRARY_PATH=/usr/local/lib64:/usr/local/lib:/usr/lib64:/usr/lib
 ARG TARGETARCH
 
-RUN microdnf update -y                                            && \
-    microdnf install -y --nodocs                                     \
-        python-pip python-devel                                   && \
-    pip install --upgrade --no-cache-dir pip wheel                && \
-    if [ "$TARGETARCH" = "ppc64le" ]; then                           \
-        microdnf install -y --nodocs                                 \
-            git gcc-toolset-13 rust cargo wget unzip              && \
-        pip install --upgrade --no-cache-dir 'cmake<4'             ; \
-    elif [ "$TARGETARCH" = "s390x" ]; then                           \
-        microdnf install -y --nodocs                                 \
-            git gcc-toolset-13 make wget unzip rust cargo            \
-            gcc-gfortran python3-devel openblas-devel pkgconfig   && \
-        pip install --upgrade --no-cache-dir 'cmake<4'               \
-                                        setuptools wheel           ; \
-    fi                                                            && \
-    microdnf clean all
+RUN microdnf install -y --nodocs python3-pip python3-devel gcc     && \
+    pip install --upgrade --no-cache-dir pip wheel                 && \
+    if [ "$TARGETARCH" = "ppc64le" ]; then                            \
+        microdnf install -y --nodocs                                  \
+            git gcc-toolset-13 rust cargo wget unzip               && \
+        pip install --upgrade --no-cache-dir 'cmake<4'              ; \
+    elif [ "$TARGETARCH" = "s390x" ]; then                            \
+        microdnf install -y --nodocs                                  \
+            git gcc-toolset-13 make wget unzip rust cargo             \
+            gcc-gfortran openblas-devel pkgconfig                  && \
+        pip install --upgrade --no-cache-dir 'cmake<4'                \
+                                                   wheel            ; \
+    fi                                                             && \
+    microdnf clean all && \
+    python3 -V && python -V
+
 
 RUN if [ "$TARGETARCH" != "ppc64le" ] && [ "$TARGETARCH" != "s390x" ]; then \
         pip install --no-cache-dir torch                            ; \
@@ -83,8 +83,14 @@ COPY ./common/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./huggingface/requirements.txt .
-RUN if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
-       source /opt/rh/gcc-toolset-13/enable                            ; \
+RUN export CURDIR=$(pwd) && \
+    if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
+       source /opt/rh/gcc-toolset-13/enable                                          && \ 
+       microdnf install tar openssl-devel libatomic gcc-toolset-13-libatomic-devel -y && \
+       export OPENSSL_ROOT_DIR=/usr                                                   && \
+       curl -L https://cmake.org/files/v3.31/cmake-3.31.0.tar.gz > /tmp/cmake-3.31.0.tar.gz && \
+       cd /tmp/ && tar -xzf /tmp/cmake-3.31.0.tar.gz -C /tmp &&  cd /tmp/cmake-3.31.0 && ./bootstrap && make && make install && cd .. && rm -rf cmake-3.31.0 && \
+       cd $CURDIR; \
     fi                                                                && \
     pip install --no-cache-dir -r requirements.txt
 
