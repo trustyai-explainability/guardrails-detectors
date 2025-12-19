@@ -1,3 +1,4 @@
+import json
 import logging
 
 from fastapi import HTTPException, Request
@@ -72,5 +73,11 @@ def get_registry():
             raise TypeError(f"Detector {detector_type} is not a valid BaseDetectorRegistry")
         result[detector_type] = {}
         for detector_name, detector_fn in detector_registry.get_registry().items():
-            result[detector_type][detector_name] = detector_fn.__doc__
+            docstring = detector_fn.__doc__
+            try:
+                # Try to parse as JSON
+                parsed = json.loads(docstring)
+                result[detector_type][detector_name] = parsed
+            except Exception:
+                result[detector_type][detector_name] = docstring
     return result
