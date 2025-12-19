@@ -1,4 +1,4 @@
 urllib3==2.6.2
 transformers==4.57.1
-sentencepiece==0.2.1
+sentencepiece==0.1.96
 tiktoken==0.12.0
