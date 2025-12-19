@@ -105,6 +105,8 @@ COPY ./common /app/detectors/common
 COPY ./huggingface/detector.py /app/detectors/huggingface/
 RUN mkdir /common; cp /app/detectors/common/log_conf.yaml /common/
 COPY ./huggingface/app.py /app
+ENV PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus_multiproc_dir"
+RUN mkdir -p $PROMETHEUS_MULTIPROC_DIR && chmod 777 $PROMETHEUS_MULTIPROC_DIR
 
 EXPOSE 8000
 CMD ["uvicorn", "app:app", "--workers", "1", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/common/log_conf.yaml"]
