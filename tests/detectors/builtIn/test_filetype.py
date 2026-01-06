@@ -289,18 +289,17 @@ class TestFileTypeDetectors:
     
     # === ERROR HANDLING & INVALID DETECTOR TYPES =================================================
     def test_unregistered_detector_kind_ignored(self, client: TestClient):
-        """Test that requesting an unregistered detector kind is silently ignored"""
+        """Test that requesting an unregistered detector kind returns 400 error"""
         payload = {
             "contents": ['{"a": 1}'],
             "detector_params": {"nonexistent_detector": ["some_value"]}
         }
         resp = client.post("/api/v1/text/contents", json=payload)
-        assert resp.status_code == 200
-        # Should return empty list since nonexistent_detector is not registered
-        assert resp.json()[0] == []
+        # Should return 400 error since nonexistent_detector is not registered
+        assert resp.status_code == 400
 
     def test_mixed_valid_invalid_detector_kinds(self, client: TestClient):
-        """Test mixing valid and invalid detector kinds"""
+        """Test mixing valid and invalid detector kinds returns 400 error"""
         payload = {
             "contents": ['{a: 1, b: 2}'],
             "detector_params": {
@@ -309,10 +308,8 @@ class TestFileTypeDetectors:
             }
         }
         resp = client.post("/api/v1/text/contents", json=payload)
-        assert resp.status_code == 200
-        detections = resp.json()[0]
-        # Should only process the valid detector kind
-        assert detections[0]["detection"] == "invalid_json"
+        # Should return 400 error for the unregistered detector
+        assert resp.status_code == 400
     
     def test_empty_detector_params(self, client: TestClient):
         """Test with empty detector_params"""
