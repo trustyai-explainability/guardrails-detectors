@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 import torch
 from starlette.testclient import TestClient
+from prometheus_client import REGISTRY
 
 # DO NOT IMPORT THIS VALUE, if we import common.app before the test fixtures we can break prometheus multiprocessing
 METRIC_PREFIX = "trustyai_guardrails"
@@ -25,8 +26,10 @@ def send_request(client: TestClient, detect: bool, slow: bool = False):
 
 
 def get_metric_dict(client: TestClient):
-    metrics = client.get("/metrics")
-    metrics = metrics.content.decode().split("\n")
+    # In test mode with TestClient, we're running in a single process,
+    # so multiprocess mode doesn't work. Use the default REGISTRY directly.
+    from prometheus_client import generate_latest, REGISTRY
+    metrics = generate_latest(REGISTRY).decode().split("\n")
     metric_dict = {}
 
     for m in metrics:
@@ -36,45 +39,54 @@ def get_metric_dict(client: TestClient):
 
     return metric_dict
 
+@pytest.fixture(scope="session")
+def client(prometheus_multiproc_dir):
+    # Clear any existing metrics from the REGISTRY before importing the app
+    # This is needed because even in multiprocess mode, metrics are registered to REGISTRY
+    collectors_to_unregister = [
+        c for c in list(REGISTRY._collector_to_names.keys())
+        if hasattr(c, '_name') and 'trustyai_guardrails' in c._name
+    ]
+    for collector in collectors_to_unregister:
+        try:
+            REGISTRY.unregister(collector)
+        except Exception:
+            pass
+
+    current_dir = os.path.dirname(__file__)
+    parent_dir = os.path.dirname(os.path.dirname(current_dir))
+    os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
+
+    from detectors.huggingface.app import app
+    from detectors.huggingface.detector import Detector
+    detector = Detector()
+
+    # patch the model to allow for control over detections - long messages will flag
+    def detection_fn(*args, **kwargs):
+        output = Mock()
+        if kwargs["input_ids"].shape[-1] > 10:
+            output.logits = torch.tensor([[0.0, 1.0]])
+        else:
+            output.logits = torch.tensor([[1.0, 0.0]])
+
+        if kwargs["input_ids"].shape[-1] > 100:
+            time.sleep(.25)
+        return output
+
+    class ModelMock:
+        def __init__(self):
+            self.config = Mock()
+            self.config.id2label = detector.model.config.id2label
+            self.config.problem_type = detector.model.config.problem_type
+        def __call__(self, *args, **kwargs):
+            return detection_fn(*args, **kwargs)
+
+    detector.model = ModelMock()
+    app.set_detector(detector, detector.registry_name)
+    detector.set_instruments(app.state.instruments)
+    return TestClient(app)
+
 class TestMetrics:
-    @pytest.fixture
-    def client(self):
-        current_dir = os.path.dirname(__file__)
-        parent_dir = os.path.dirname(os.path.dirname(current_dir))
-        os.environ["MODEL_DIR"] = os.path.join(parent_dir, "dummy_models", "bert/BertForSequenceClassification")
-
-        from detectors.huggingface.app import app
-        # clear the metric registry at the start of each test, but AFTER the multiprocessing metrics is set up
-        import prometheus_client
-        prometheus_client.REGISTRY._names_to_collectors.clear()
-
-        from detectors.huggingface.detector import Detector
-        detector = Detector()
-
-        # patch the model to allow for control over detections - long messages will flag
-        def detection_fn(*args, **kwargs):
-            output = Mock()
-            if kwargs["input_ids"].shape[-1] > 10:
-                output.logits = torch.tensor([[0.0, 1.0]])
-            else:
-                output.logits = torch.tensor([[1.0, 0.0]])
-
-            if kwargs["input_ids"].shape[-1] > 100:
-                time.sleep(.25)
-            return output
-
-        class ModelMock:
-            def __init__(self):
-                self.config = Mock()
-                self.config.id2label = detector.model.config.id2label
-                self.config.problem_type = detector.model.config.problem_type
-            def __call__(self, *args, **kwargs):
-                return detection_fn(*args, **kwargs)
-
-        detector.model = ModelMock()
-        app.set_detector(detector, detector.registry_name)
-        detector.set_instruments(app.state.instruments)
-        return TestClient(app)
 
 
 
