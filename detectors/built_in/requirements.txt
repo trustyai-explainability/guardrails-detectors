@@ -1,4 +1,4 @@
-urllib3==2.6.2
+urllib3==2.6.3
 markdown==3.8.2
 jsonschema==4.24.0
 xmlschema==4.1.0
