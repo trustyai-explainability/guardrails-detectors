@@ -83,10 +83,13 @@ COPY ./common/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./huggingface/requirements.txt .
+
+# install RPMs for all the build architectures to ensure the same versions of openssl and other RPMs packages are for all the architectures
+RUN source /opt/rh/gcc-toolset-13/enable                                          && \ 
+    microdnf install tar openssl-devel libatomic gcc-toolset-13-libatomic-devel -y
+    
 RUN export CURDIR=$(pwd) && \
     if [ "$TARGETARCH" = "ppc64le" ] || [ "$TARGETARCH" = "s390x" ]; then \
-       source /opt/rh/gcc-toolset-13/enable                                          && \ 
-       microdnf install tar openssl-devel libatomic gcc-toolset-13-libatomic-devel -y && \
        export OPENSSL_ROOT_DIR=/usr                                                   && \
        curl -L https://cmake.org/files/v3.31/cmake-3.31.0.tar.gz > /tmp/cmake-3.31.0.tar.gz && \
        cd /tmp/ && tar -xzf /tmp/cmake-3.31.0.tar.gz -C /tmp &&  cd /tmp/cmake-3.31.0 && ./bootstrap && make && make install && cd .. && rm -rf cmake-3.31.0 && \
