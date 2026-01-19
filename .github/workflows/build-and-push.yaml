@@ -70,8 +70,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: env.BUILD_CONTEXT == 'main' ||  env.BUILD_CONTEXT == 'tag'
+        with:
+          persist-credentials: false
       #
       # Print variables for debugging
       - name: Log reference variables
