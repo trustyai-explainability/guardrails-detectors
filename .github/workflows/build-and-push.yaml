@@ -20,7 +20,7 @@ on:
     paths:
       - 'detectors/*'
       - '.github/workflows/*'
-  pull_request_target:
+  pull_request:
     paths:
       - 'detectors/*'
     types: [labeled, opened, synchronize, reopened]
@@ -28,13 +28,15 @@ jobs:
   # Ensure that tests pass before publishing a new image.
   build-and-push-ci:
     # Only run if:
-    # 1. Tests completed successfully on target branches (from workflow_run trigger), OR
-    # 2. Direct push/PR trigger (tests will run in parallel)
+    # 1. Running in the trustyai-explainability/guardrails-detectors repository, AND
+    # 2. Tests completed successfully on target branches (from workflow_run trigger), OR
+    # 3. Direct push/PR trigger (tests will run in parallel)
     if: |
-      (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       contains(fromJSON('["main", "incubation", "stable"]'), github.event.workflow_run.head_branch)) ||
-      (github.event_name != 'workflow_run')
+      github.repository == 'trustyai-explainability/guardrails-detectors' &&
+      ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        contains(fromJSON('["main", "incubation", "stable"]'), github.event.workflow_run.head_branch)) ||
+       (github.event_name != 'workflow_run'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,12 +65,15 @@ jobs:
           mode: minimum
           count: 1
           labels: "ok-to-test, lgtm, approved"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: env.BUILD_CONTEXT == 'ci'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/checkout@v3
+          persist-credentials: false
+      - uses: actions/checkout@v4
         if: env.BUILD_CONTEXT == 'main' ||  env.BUILD_CONTEXT == 'tag'
+        with:
+          persist-credentials: false
       #
       # Print variables for debugging
       - name: Log reference variables
