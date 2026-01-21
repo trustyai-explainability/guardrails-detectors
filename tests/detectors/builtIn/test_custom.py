@@ -22,14 +22,14 @@ def evil(text: str) -> bool:
     return True
 '''
 
-UNSAFE_CODE_IMPORT_FROM_ENVIRON = '''
-from os import environ
+UNSAFE_CODE_IMPORT_FROM = '''
+from sys import path
 def func(text: str) -> bool:
     return True
 '''
 
-UNSAFE_CODE_IMPORT_FROM = '''
-from sys import path
+SAFE_CODE_IMPORT_FROM_ENVIRON = '''
+from os import environ
 def func(text: str) -> bool:
     return True
 '''
@@ -153,7 +153,7 @@ class TestCustomDetectors:
         assert "Forbidden import: sys" in str(excinfo.value) or "sys.path" in str(excinfo.value)
 
     def test_unsafe_code_import_from_environ(self, client):
-        write_code_to_custom_detectors(UNSAFE_CODE_IMPORT_FROM_ENVIRON)
+        write_code_to_custom_detectors(SAFE_CODE_IMPORT_FROM_ENVIRON)
         from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
         CustomDetectorRegistry()
         assert True
