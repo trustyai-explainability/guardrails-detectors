@@ -22,6 +22,17 @@ def evil(text: str) -> bool:
     return True
 '''
 
+UNSAFE_CODE_IMPORT_FROM = '''
+from sys import path
+def func(text: str) -> bool:
+    return True
+'''
+
+SAFE_CODE_IMPORT_FROM_ENVIRON = '''
+from os import environ
+def func(text: str) -> bool:
+    return True
+'''
 
 def write_code_to_custom_detectors(code: str):
     with open(CUSTOM_DETECTORS_PATH, "w") as f:
@@ -132,6 +143,23 @@ class TestCustomDetectors:
             CustomDetectorRegistry()
         assert "Unsafe code detected" in str(excinfo.value)
         assert "Forbidden import: os" in str(excinfo.value) or "os.system" in str(excinfo.value)
+
+
+    def test_unsafe_code_import_from(self, client):
+        write_code_to_custom_detectors(UNSAFE_CODE_IMPORT_FROM)
+        from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
+        with pytest.raises(ImportError) as excinfo:
+            CustomDetectorRegistry()
+        assert "Unsafe code detected" in str(excinfo.value)
+        assert "Forbidden import: sys" in str(excinfo.value) or "sys.path" in str(excinfo.value)
+
+
+    def test_safe_code_import_from_environ(self, client):
+        # from os import environ <- should not trigger the unsafe import error
+        write_code_to_custom_detectors(SAFE_CODE_IMPORT_FROM_ENVIRON)
+        from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
+        CustomDetectorRegistry()
+        assert True
 
 
     def test_custom_detectors_func_doesnt_exist(self, client):

@@ -135,7 +135,11 @@ def static_code_analysis(module_path, forbidden_imports=None, forbidden_calls=No
                     issues.append(f"- Forbidden import: {alias.name} (line {node.lineno})")
         if isinstance(node, ast.ImportFrom):
             if node.module and node.module.split(".")[0] in forbidden_imports:
+                # Allow specific exception: from os import environ
+                if node.module == "os" and len(node.names) == 1 and node.names[0].name in {"environ", "getenv"}:
+                    continue
                 issues.append(f"- Forbidden import: {node.module} (line {node.lineno})")
+
         # Check for forbidden function calls
         if isinstance(node, ast.Call):
             func_name = ""
