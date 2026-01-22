@@ -144,6 +144,7 @@ class TestCustomDetectors:
         assert "Unsafe code detected" in str(excinfo.value)
         assert "Forbidden import: os" in str(excinfo.value) or "os.system" in str(excinfo.value)
 
+
     def test_unsafe_code_import_from(self, client):
         write_code_to_custom_detectors(UNSAFE_CODE_IMPORT_FROM)
         from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
@@ -152,7 +153,9 @@ class TestCustomDetectors:
         assert "Unsafe code detected" in str(excinfo.value)
         assert "Forbidden import: sys" in str(excinfo.value) or "sys.path" in str(excinfo.value)
 
-    def test_unsafe_code_import_from_environ(self, client):
+
+    def test_safe_code_import_from_environ(self, client):
+        # from os import environ <- should not trigger the unsafe import error
         write_code_to_custom_detectors(SAFE_CODE_IMPORT_FROM_ENVIRON)
         from detectors.built_in.custom_detectors_wrapper import CustomDetectorRegistry
         CustomDetectorRegistry()
