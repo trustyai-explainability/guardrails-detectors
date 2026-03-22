@@ -54,7 +54,7 @@ jobs:
         echo "Component: ${{ matrix.component.name }}"
 
     - name: Run Trivy vulnerability scanner (filesystem)
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '${{ matrix.component.path }}'
@@ -65,7 +65,7 @@ jobs:
         scanners: 'vuln,secret'
 
     - name: Run Trivy configuration scanner
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'config'
         scan-ref: '${{ matrix.component.path }}'
@@ -89,7 +89,7 @@ jobs:
         category: '${{ matrix.component.name }}-config'
 
     - name: Generate human-readable vulnerability report
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '${{ matrix.component.path }}'
@@ -122,7 +122,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Run Trivy repository scan
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
@@ -139,7 +139,7 @@ jobs:
         category: 'repository-wide-security'
 
     - name: Generate repository security report
-      uses: aquasecurity/trivy-action@0.28.0
+      uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
       with:
         scan-type: 'fs'
         scan-ref: '.'
