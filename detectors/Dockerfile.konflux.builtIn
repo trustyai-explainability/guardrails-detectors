@@ -1,0 +1,40 @@
+FROM registry.access.redhat.com/ubi9/ubi-minimal as base
+RUN microdnf update -y && \
+    microdnf install -y --nodocs \
+        python-pip python-devel && \
+    pip install --upgrade --no-cache-dir pip wheel && \
+    microdnf clean all
+
+# FROM icr.io/fm-stack/ubi9-minimal-py39-torch as builder
+FROM base as builder
+
+COPY ./common/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./built_in/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+FROM builder
+
+WORKDIR /app
+ARG CACHEBUST=1
+RUN echo "$CACHEBUST"
+COPY ./common /app/detectors/common
+COPY ./built_in/ /app
+
+EXPOSE 8080
+
+# for backwards compatibility with existing k8s deployment configs
+RUN mkdir /app/bin &&\
+     echo '#!/bin/bash' > /app/bin/regex-detector &&\
+    echo "uvicorn app:app --workers 4 --host 0.0.0.0 --port 8080 --log-config /app/detectors/common/log_conf.yaml" >> /app/bin/regex-detector &&\
+    chmod +x /app/bin/regex-detector
+CMD ["/app/bin/regex-detector"]
+
+LABEL name="rhoai/odh-built-in-detector-rhel9" \
+      com.redhat.component="odh-built-in-detector-rhel9" \
+      io.k8s.display-name="odh-built-in-detector-rhel9" \
+      io.k8s.description="The Guardrails Built-in Detector is a collection of quick text detection algorithms, bundled into a microservice for use with the FMS-Guardrails project. It provides a REST API endpoint that accepts text content and detector parameters, returning detailed detection results with position information and confidence scores for a variety of text detection paradigms, such as regex and file-type validation." \
+      description="The Guardrails Built-in Detector is a collection of quick text detection algorithms, bundled into a microservice for use with the FMS-Guardrails project. It provides a REST API endpoint that accepts text content and detector parameters, returning detailed detection results with position information and confidence scores for a variety of text detection paradigms, such as regex and file-type validation." \
+      summary="The Guardrails Built-in Detector is a collection of quick text detection algorithms, bundled into a microservice for use with the FMS-Guardrails project." \
+      com.redhat.license_terms="https://www.redhat.com/licenses/Red_Hat_Standard_EULA_20191108.pdf"
