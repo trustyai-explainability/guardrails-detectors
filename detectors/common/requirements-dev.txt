@@ -3,5 +3,5 @@ locust==2.31.1
 pre-commit==3.8.0
 pytest==8.3.2
 tls-test-tools
-protobuf==6.33.0
+protobuf==6.33.5
 torch==2.9.1
