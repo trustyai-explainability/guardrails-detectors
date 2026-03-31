@@ -9,6 +9,7 @@ from transformers import (
     AutoConfig,
     AutoTokenizer,
     AutoModelForSequenceClassification,
+    AutoModelForTokenClassification,
     AutoModelForCausalLM,
 )
 from detectors.common.app import logger
@@ -20,7 +21,9 @@ from detectors.common.scheme import (
 import gc
 
 
-def _parse_safe_labels_env():
+def _parse_safe_labels_env(default=None):
+    if default is None:
+        default = [0]
     if os.environ.get("SAFE_LABELS"):
         try:
             parsed = json.loads(os.environ.get("SAFE_LABELS"))
@@ -31,10 +34,10 @@ def _parse_safe_labels_env():
                 logger.info(f"SAFE_LABELS env var: {parsed}")
                 return parsed
         except Exception as e:
-            logger.warning(f"Could not parse SAFE_LABELS env var: {e}. Defaulting to [0].")
-            return [0]
-    logger.info("SAFE_LABELS env var not set: defaulting to [0].")
-    return [0]
+            logger.warning(f"Could not parse SAFE_LABELS env var: {e}. Defaulting to {default}.")
+            return default
+    logger.info(f"SAFE_LABELS env var not set: defaulting to {default}.")
+    return default
 
 
 class Detector(InstrumentedDetector):
@@ -66,6 +69,12 @@ class Detector(InstrumentedDetector):
         logger.info(f"Loading model from {model_files_path}")
 
         self.initialize_model(model_files_path)
+
+        # For token classifiers, re-parse with "O" as the default safe label
+        # rather than index 0, since "O" can appear at any index depending
+        if self.is_token_classifier:
+            self.safe_labels = _parse_safe_labels_env(default=["O"])
+
         self.initialize_device()
 
     def initialize_model(self, model_files_path):
@@ -86,8 +95,15 @@ class Detector(InstrumentedDetector):
 
         if any("ForTokenClassification" in arch for arch in config.architectures):
             self.is_token_classifier = True
-            logger.error("Token classification models are not supported.")
-            raise ValueError("Token classification models are not supported.")
+            if not getattr(self.tokenizer, "is_fast", False):
+                raise ValueError(
+                    "Token classification requires a fast tokenizer for "
+                    "offset mapping support, but only a slow tokenizer is "
+                    "available for this model."
+                )
+            self.model = AutoModelForTokenClassification.from_pretrained(
+                model_files_path
+            )
         elif any("GraniteForCausalLM" in arch for arch in config.architectures):
             self.is_causal_lm = True
             self.model = AutoModelForCausalLM.from_pretrained(model_files_path)
@@ -282,6 +298,100 @@ class Detector(InstrumentedDetector):
                     )
         return content_analyses
 
+    def process_token_classification(self, text, detector_params=None, threshold=None):
+        detector_params = detector_params or {}
+        if threshold is None:
+            threshold = detector_params.get("threshold", 0.5)
+        # Merge safe_labels from env and request
+        request_safe_labels = set(detector_params.get("safe_labels", []))
+        all_safe_labels = set(self.safe_labels) | request_safe_labels
+        content_analyses = []
+        tokenized = self.tokenizer(
+            text,
+            max_length=512,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            return_offsets_mapping=True,
+        )
+        # offset_mapping is not a model input — extract before sending to device
+        offset_mapping = tokenized.pop("offset_mapping")[0]
+        if self.cuda_device:
+            tokenized = tokenized.to(self.cuda_device)
+
+        with torch.no_grad():
+            logits = self.model(**tokenized).logits
+            probabilities = torch.softmax(logits, dim=2).detach().cpu().numpy()[0]
+
+            # Per token, pick the single highest-probability non-safe label
+            # above threshold. This avoids overlapping spans and preserves
+            # left-to-right ordering.
+            detected_tokens = []
+            for token_idx, token_probs in enumerate(probabilities):
+                char_start, char_end = offset_mapping[token_idx].tolist()
+                # Skip special tokens (e.g. [CLS], [SEP]) which have (0, 0) offsets
+                if char_start == 0 and char_end == 0:
+                    continue
+
+                best_label = None
+                best_prob = -1.0
+                for label_idx, prob in enumerate(token_probs):
+                    label = self.model.config.id2label[label_idx]
+                    prob = float(prob)
+                    if (
+                        prob >= threshold
+                        and label_idx not in all_safe_labels
+                        and label not in all_safe_labels
+                        and prob > best_prob
+                    ):
+                        best_label = label
+                        best_prob = prob
+
+                if best_label is not None:
+                    detected_tokens.append({
+                        "token_idx": token_idx,
+                        "char_start": int(char_start),
+                        "char_end": int(char_end),
+                        "label": best_label,
+                        "prob": best_prob,
+                    })
+
+            # Group adjacent tokens with the same label into spans
+            spans = []
+            for token in detected_tokens:
+                if (
+                    spans
+                    and spans[-1]["label"] == token["label"]
+                    and token["token_idx"] == spans[-1]["last_token_idx"] + 1
+                ):
+                    spans[-1]["char_end"] = token["char_end"]
+                    spans[-1]["last_token_idx"] = token["token_idx"]
+                    spans[-1]["probs"].append(token["prob"])
+                else:
+                    spans.append({
+                        "char_start": token["char_start"],
+                        "char_end": token["char_end"],
+                        "label": token["label"],
+                        "last_token_idx": token["token_idx"],
+                        "probs": [token["prob"]],
+                    })
+
+            detection_value = getattr(self.model.config, "problem_type", None)
+            for span in spans:
+                score = sum(span["probs"]) / len(span["probs"])
+                content_analyses.append(
+                    ContentAnalysisResponse(
+                        start=span["char_start"],
+                        end=span["char_end"],
+                        detection_type=span["label"],
+                        score=score,
+                        text=text[span["char_start"]:span["char_end"]],
+                        evidences=[],
+                        **({"detection": detection_value} if detection_value is not None else {})
+                    )
+                )
+        return content_analyses
+
     def run(self, input: ContentAnalysisHttpRequest) -> ContentsAnalysisResponse:
         """
         Run the content analysis for each input text.
@@ -297,6 +407,10 @@ class Detector(InstrumentedDetector):
             for text in input.contents:
                 if self.is_causal_lm:
                     analyses = self.process_causal_lm(text)
+                elif self.is_token_classifier:
+                    analyses = self.process_token_classification(
+                        text, detector_params=getattr(input, "detector_params", None)
+                    )
                 elif self.is_sequence_classifier:
                     analyses = self.process_sequence_classification(
                         text, detector_params=getattr(input, "detector_params", None)
