@@ -108,6 +108,7 @@ class TestDetectorRun:
     def test_run_unsupported_model(self):
         detector = Detector.__new__(Detector)
         detector.is_causal_lm = False
+        detector.is_token_classifier = False
         detector.is_sequence_classifier = False
         detector.function_name = "test_detector"
 
