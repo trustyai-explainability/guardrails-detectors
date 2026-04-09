@@ -177,6 +177,175 @@ class TestTokenClassification:
                     f"Overlapping spans: [{a.start}:{a.end}] and [{b.start}:{b.end}]"
                 )
 
+    def test_default_max_length(self, detector_instance):
+        os.environ.pop("MAX_LENGTH", None)
+        assert detector_instance.default_max_length == 512
+
+    def test_env_max_length_override(self, setup_environment):
+        model_dir = os.path.join(
+            os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
+        )
+        os.environ["MODEL_DIR"] = model_dir
+        os.environ.pop("SAFE_LABELS", None)
+        os.environ["MAX_LENGTH"] = "256"
+        try:
+            detector = Detector()
+            assert detector.default_max_length == 256
+        finally:
+            os.environ.pop("MAX_LENGTH", None)
+
+    def test_invalid_env_max_length_falls_back_to_default(self, setup_environment):
+        model_dir = os.path.join(
+            os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
+        )
+        os.environ["MODEL_DIR"] = model_dir
+        os.environ.pop("SAFE_LABELS", None)
+        os.environ["MAX_LENGTH"] = "not_a_number"
+        try:
+            detector = Detector()
+            assert detector.default_max_length == 512
+        finally:
+            os.environ.pop("MAX_LENGTH", None)
+
+    def test_negative_env_max_length_falls_back_to_default(self, setup_environment):
+        model_dir = os.path.join(
+            os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
+        )
+        os.environ["MODEL_DIR"] = model_dir
+        os.environ.pop("SAFE_LABELS", None)
+        os.environ["MAX_LENGTH"] = "-1"
+        try:
+            detector = Detector()
+            assert detector.default_max_length == 512
+        finally:
+            os.environ.pop("MAX_LENGTH", None)
+
+    def test_env_max_length_clamped_to_model_max(self, setup_environment):
+        """MAX_LENGTH exceeding model capacity should be clamped in constructor."""
+        model_dir = os.path.join(
+            os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
+        )
+        os.environ["MODEL_DIR"] = model_dir
+        os.environ.pop("SAFE_LABELS", None)
+        os.environ["MAX_LENGTH"] = "999999"
+        try:
+            detector = Detector()
+            assert detector.default_max_length == detector.tokenizer.model_max_length
+        finally:
+            os.environ.pop("MAX_LENGTH", None)
+
+    def test_request_max_length_override(self, detector_instance):
+        text = "This is a test."
+        results = detector_instance.process_token_classification(
+            text, detector_params={"max_length": 64}
+        )
+        assert isinstance(results, list)
+
+    def test_invalid_request_max_length_uses_default(self, detector_instance):
+        text = "This is a test."
+        # Invalid types should fall back to default without error
+        for invalid in ["abc", -1, 0, 3.5, True, False, [], {}]:
+            results = detector_instance.process_token_classification(
+                text, detector_params={"max_length": invalid}
+            )
+            assert isinstance(results, list)
+
+    def test_bool_max_length_rejected(self, detector_instance):
+        """bool is a subclass of int in Python — must be explicitly rejected."""
+        params = detector_instance._resolve_params({"max_length": True})
+        assert params.max_length == detector_instance.default_max_length
+        params = detector_instance._resolve_params({"max_length": False})
+        assert params.max_length == detector_instance.default_max_length
+
+    def test_max_length_clamped_to_model_max(self, detector_instance):
+        """Requesting max_length beyond model capacity should clamp to model max."""
+        model_max = detector_instance.tokenizer.model_max_length
+        params = detector_instance._resolve_params({"max_length": model_max + 1000})
+        assert params.max_length == model_max
+
+    def test_max_length_within_model_max_is_honoured(self, detector_instance):
+        params = detector_instance._resolve_params({"max_length": 64})
+        assert params.max_length == 64
+
+    def test_max_length_affects_long_input(self, detector_instance):
+        """A very short max_length should still produce valid results for long text."""
+        text = "John Smith works at Google in London. " * 100
+        results_short = detector_instance.process_token_classification(
+            text, detector_params={"max_length": 32}
+        )
+        results_long = detector_instance.process_token_classification(
+            text, detector_params={"max_length": 512}
+        )
+        assert isinstance(results_short, list)
+        assert isinstance(results_long, list)
+        # Shorter max_length sees less of the text, so should find <= detections
+        assert len(results_short) <= len(results_long)
+
+    def test_invalid_threshold_in_detector_params(self, detector_instance):
+        """Non-numeric threshold should fall back to default without error."""
+        text = "This is a test."
+        for invalid in ["high", True, [], {}, None]:
+            results = detector_instance.process_token_classification(
+                text, detector_params={"threshold": invalid}
+            )
+            assert isinstance(results, list)
+
+    def test_invalid_label_thresholds_in_detector_params(self, detector_instance):
+        """Malformed label_thresholds should be ignored gracefully."""
+        text = "This is a test."
+        # Entirely wrong type
+        results = detector_instance.process_token_classification(
+            text, detector_params={"label_thresholds": "not a dict"}
+        )
+        assert isinstance(results, list)
+        # Dict with bad values — valid entries kept, bad ones skipped
+        results = detector_instance.process_token_classification(
+            text, detector_params={"label_thresholds": {"O": "high", "B-PER": 0.9}}
+        )
+        assert isinstance(results, list)
+
+    def test_safe_labels_bare_string_normalised(self, detector_instance):
+        """A bare string safe_label should be treated as a single-element list, not iterated."""
+        params = detector_instance._resolve_params({"safe_labels": "O"})
+        assert "O" in params.safe_labels
+
+    def test_safe_labels_wrong_type_ignored(self, detector_instance):
+        """Non-list/str/int safe_labels should be ignored."""
+        params = detector_instance._resolve_params({"safe_labels": 3.14})
+        assert params.safe_labels == frozenset(detector_instance.safe_labels)
+
+    def test_safe_labels_bool_rejected(self, detector_instance):
+        """bool should not be treated as an int safe label."""
+        params = detector_instance._resolve_params({"safe_labels": True})
+        # True should be rejected, not treated as index 1
+        assert True not in params.safe_labels
+        assert params.safe_labels == frozenset(detector_instance.safe_labels)
+
+    def test_safe_labels_unhashable_elements_ignored(self, detector_instance):
+        """Unhashable elements like nested lists should be filtered out, not crash."""
+        params = detector_instance._resolve_params({"safe_labels": [["B-PER"], "B-ORG"]})
+        assert "B-ORG" in params.safe_labels
+        # Only valid str/int entries should be in safe_labels (plus env defaults)
+        for item in params.safe_labels:
+            assert isinstance(item, (str, int))
+
+    def test_threshold_affects_detection_count(self, detector_instance):
+        """Valid thresholds should change which detections are returned."""
+        text = "This is a test."
+        results_all = detector_instance.process_token_classification(
+            text, threshold=0.0
+        )
+        results_none = detector_instance.process_token_classification(
+            text, threshold=1.0
+        )
+        assert len(results_none) <= len(results_all)
+        assert len(results_none) == 0
+
+    def test_direct_threshold_bool_rejected(self, detector_instance):
+        """Passing threshold=True directly should fall back to default."""
+        params = detector_instance._resolve_params({}, direct_threshold=True)
+        assert params.threshold == detector_instance.default_threshold
+
     def test_run_routes_to_token_classification(self, detector_instance):
         from detectors.common.scheme import ContentAnalysisHttpRequest
         request = ContentAnalysisHttpRequest(
