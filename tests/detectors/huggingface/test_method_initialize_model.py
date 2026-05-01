@@ -1,5 +1,6 @@
 # third-party imports
 import os
+from unittest.mock import patch
 import pytest
 
 # local imports
@@ -41,10 +42,12 @@ class TestDetector:
             os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
         )
         os.environ["MODEL_DIR"] = model_dir
-        with pytest.raises(
-            ValueError, match="Token classification models are not supported."
-        ):
-            Detector()
+        os.environ.pop("SAFE_LABELS", None)
+        detector = Detector()
+        assert detector.model_name == "token_classifier"
+        assert detector.is_token_classifier is True
+        assert detector.is_sequence_classifier is False
+        assert detector.is_causal_lm is False
 
     def test_initialization_with_sequence_classifier(self):
         model_dir = os.path.join(
@@ -55,6 +58,20 @@ class TestDetector:
         assert detector.model_name == "sequence_classifier"
         assert detector.is_sequence_classifier is True
         assert detector.is_causal_lm is False
+
+    def test_token_classifier_rejects_slow_tokenizer(self):
+        model_dir = os.path.join(
+            os.environ["MODEL_DIR"], "bert/BertForTokenClassification"
+        )
+        os.environ["MODEL_DIR"] = model_dir
+        os.environ.pop("SAFE_LABELS", None)
+        with patch(
+            "detectors.huggingface.detector.AutoTokenizer.from_pretrained"
+        ) as mock_tokenizer:
+            # Simulate a slow tokenizer (is_fast=False)
+            mock_tokenizer.return_value.is_fast = False
+            with pytest.raises(ValueError, match="fast tokenizer"):
+                Detector()
 
     def test_intialisation_with_casual_lm_but_no_granite(self):
         model_dir = os.path.join(os.environ["MODEL_DIR"], "gpt2/GPT2Model")
