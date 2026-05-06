@@ -1,0 +1,2 @@
+-r ../common/requirements.in
+vllm-judge[jinja2]==0.1.8
