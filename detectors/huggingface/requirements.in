@@ -1,0 +1,4 @@
+-r ../common/requirements.in
+transformers==4.57.1
+sentencepiece==0.2.1
+tiktoken==0.12.0

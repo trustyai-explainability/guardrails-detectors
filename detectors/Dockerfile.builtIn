@@ -8,9 +8,6 @@ RUN microdnf update -y && \
 # FROM icr.io/fm-stack/ubi9-minimal-py39-torch as builder
 FROM base as builder
 
-COPY ./common/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 COPY ./built_in/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

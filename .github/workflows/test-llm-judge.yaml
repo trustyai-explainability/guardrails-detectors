@@ -37,7 +37,7 @@ jobs:
       uses: ./.github/actions/test-setup
       with:
         component_name: 'llm-judge'
-        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/llm_judge/requirements.txt'
+        requirements_files: 'detectors/llm_judge/requirements.txt detectors/common/requirements-dev.txt'
         precommit_paths: 'detectors/llm_judge tests/detectors/llm_judge detectors/common'
         python_version: ${{ matrix.python-version }}
         needs_system_deps: 'true'

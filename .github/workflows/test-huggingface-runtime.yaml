@@ -39,7 +39,7 @@ jobs:
       uses: ./.github/actions/test-setup
       with:
         component_name: 'huggingface'
-        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/huggingface/requirements.txt'
+        requirements_files: 'detectors/huggingface/requirements.txt detectors/common/requirements-dev.txt'
         precommit_paths: 'detectors/huggingface tests/detectors/huggingface detectors/common'
         python_version: ${{ matrix.python-version }}
         needs_system_deps: 'true'

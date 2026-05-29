@@ -45,6 +45,28 @@ Replace `$TAG` with your desired image tag (e.g., `my-detector:latest`).
 - **Hugging Face detector**: Check out [Hugging Face detector examples](docs/hf_examples.md) for a complete setup and examples on how to use the Hugging Face detectors for detecting toxic content and prompt injection
 - **LLM Judge detector**: Check out [LLM Judge detector examples](docs/llm_judge_examples.md) for a complete setup and examples on how to use any OpenAI API compatible LLM for content assessment with built-in metrics and custom natural-language criteria
 
+## Managing Dependencies
+
+Dependencies are managed with [pip-tools](https://github.com/jazzband/pip-tools). Each component has a `requirements.in` file listing its direct dependencies; the corresponding `requirements.txt` is generated from it and should not be edited by hand.
+
+To add or update a dependency, edit the relevant `.in` file and recompile:
+
+```bash
+pip install pip-tools
+
+# recompile one component (e.g. huggingface)
+pip-compile --annotation-style line detectors/huggingface/requirements.in
+
+# recompile all components
+pip-compile --annotation-style line detectors/common/requirements.in
+pip-compile --annotation-style line detectors/built_in/requirements.in
+pip-compile --annotation-style line detectors/huggingface/requirements.in
+pip-compile --annotation-style line detectors/llm_judge/requirements.in
+pip-compile --annotation-style line detectors/common/requirements-dev.in
+```
+
+Common dependencies shared across all detectors are declared once in `detectors/common/requirements.in` and pulled into each component via `-r ../common/requirements.in`.
+
 ## API
 See [IBM Detector API](https://foundation-model-stack.github.io/fms-guardrails-orchestrator/?urls.primaryName=Detector+API)
 
