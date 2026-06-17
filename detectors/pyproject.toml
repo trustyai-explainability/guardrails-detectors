@@ -1,0 +1,53 @@
+[project]
+name = "guardrails-detectors"
+version = "0.3.0"
+requires-python = ">=3.11"
+description = "A collection of detectors for the FMS Guardrails Orchestrator"
+license = "Apache-2.0"
+
+dependencies = [
+    "urllib3==2.7.0",
+    "fastapi==0.136.3",
+    "uvicorn==0.34.0",
+    "httpx==0.28.1",
+    "prometheus_client>=0.18.0",
+    "prometheus-fastapi-instrumentator>=7.0.0",
+    "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+huggingface = [
+    "transformers==4.57.3",
+    "sentencepiece==0.2.1",
+    "tiktoken==0.12.0",
+    "torch==2.11.0",
+]
+built-in = [
+    "markdown==3.8.2",
+    "jsonschema==4.24.0",
+    "xmlschema==4.1.0",
+    "requests==2.32.5",
+]
+all = [
+    "guardrails-detectors[huggingface,built-in]",
+]
+llm-judge = [
+    "vllm-judge[jinja2]==0.1.8",
+]
+dev = [
+    "coverage==7.6.1",
+    "locust==2.31.1",
+    "pre-commit==3.8.0",
+    "pytest==8.3.2",
+    "pytest-cov>=4.0",
+    "tls-test-tools",
+    "protobuf==6.33.0",
+    "torch==2.11.0",
+]
+
+[build-system]
+requires = ["setuptools>=80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []

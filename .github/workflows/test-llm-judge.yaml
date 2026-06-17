@@ -6,6 +6,7 @@ on:
     paths:
       - 'detectors/llm_judge/**'
       - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
       - 'tests/detectors/llm_judge/**'
       - 'tests/conftest.py'
       - '.github/workflows/test-llm-judge.yaml'
@@ -14,6 +15,7 @@ on:
     paths:
       - 'detectors/llm_judge/**'
       - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
       - 'tests/detectors/llm_judge/**'
       - 'tests/conftest.py'
       - '.github/workflows/test-llm-judge.yaml'
@@ -37,7 +39,7 @@ jobs:
       uses: ./.github/actions/test-setup
       with:
         component_name: 'llm-judge'
-        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/llm_judge/requirements.txt'
+        extras: 'llm-judge,dev'
         precommit_paths: 'detectors/llm_judge tests/detectors/llm_judge detectors/common'
         python_version: ${{ matrix.python-version }}
         needs_system_deps: 'true'

@@ -1,17 +1,9 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal as base
-RUN microdnf update -y && \
-    microdnf install -y --nodocs \
-        python-pip python-devel && \
-    pip install --upgrade --no-cache-dir pip wheel && \
-    microdnf clean all
+FROM registry.access.redhat.com/ubi9/python-312:latest as base
 
 FROM base as builder
 
-COPY ./common/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY ./llm_judge/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml .
+RUN pip install --no-cache-dir ".[llm-judge]"
 
 FROM builder
 
@@ -25,5 +17,3 @@ RUN touch /app/detectors/llm_judge/__init__.py
 
 EXPOSE 8000
 CMD ["uvicorn", "detectors.llm_judge.app:app", "--workers", "4", "--host", "0.0.0.0", "--port", "8000", "--log-config", "/app/detectors/common/log_conf.yaml"]
-
-# gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000

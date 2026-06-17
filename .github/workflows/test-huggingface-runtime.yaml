@@ -6,6 +6,7 @@ on:
     paths:
       - 'detectors/huggingface/**'
       - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
       - 'tests/detectors/huggingface/**'
       - 'tests/dummy_models/**'
       - 'tests/conftest.py'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'detectors/huggingface/**'
       - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
       - 'tests/detectors/huggingface/**'
       - 'tests/dummy_models/**'
       - 'tests/conftest.py'
@@ -39,7 +41,7 @@ jobs:
       uses: ./.github/actions/test-setup
       with:
         component_name: 'huggingface'
-        requirements_files: 'detectors/common/requirements.txt detectors/common/requirements-dev.txt detectors/huggingface/requirements.txt'
+        extras: 'huggingface,dev'
         precommit_paths: 'detectors/huggingface tests/detectors/huggingface detectors/common'
         python_version: ${{ matrix.python-version }}
         needs_system_deps: 'true'

@@ -5,8 +5,8 @@ inputs:
   component_name:
     description: 'Name of the component being tested (for caching)'
     required: true
-  requirements_files:
-    description: 'Space-separated list of requirements files to install'
+  extras:
+    description: 'Comma-separated list of pyproject.toml extras to install'
     required: true
   precommit_paths:
     description: 'Space-separated list of paths to check with pre-commit'
@@ -33,14 +33,8 @@ runs:
       id: cache-key
       shell: bash
       run: |
-        # Create a hash of all requirements files for cache key
-        CACHE_KEY="${{ runner.os }}-pip-${{ inputs.component_name }}-"
-        for file in ${{ inputs.requirements_files }}; do
-          if [ -f "$file" ]; then
-            CACHE_KEY="${CACHE_KEY}$(sha256sum $file | cut -d' ' -f1)-"
-          fi
-        done
-        echo "cache_key=${CACHE_KEY%%-}" >> $GITHUB_OUTPUT
+        CACHE_KEY="${{ runner.os }}-pip-${{ inputs.component_name }}-$(sha256sum detectors/pyproject.toml | cut -d' ' -f1)"
+        echo "cache_key=${CACHE_KEY}" >> $GITHUB_OUTPUT
         echo "cache_restore_keys=${{ runner.os }}-pip-${{ inputs.component_name }}-" >> $GITHUB_OUTPUT
 
     - name: Cache pip dependencies
@@ -65,17 +59,7 @@ runs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
-        # Install test dependencies
-        pip install pytest-cov
-        # Install component-specific requirements
-        for file in ${{ inputs.requirements_files }}; do
-          if [ -f "$file" ]; then
-            echo "Installing requirements from $file"
-            pip install -r "$file"
-          else
-            echo "Warning: Requirements file $file not found"
-          fi
-        done
+        pip install "./detectors[${{ inputs.extras }}]"
 
     - name: Set Python path
       shell: bash
@@ -87,7 +71,6 @@ runs:
       shell: bash
       run: |
         if [ -f .pre-commit-config.yaml ]; then
-          # Run pre-commit on specified paths
           find ${{ inputs.precommit_paths }} -name '*.py' 2>/dev/null | xargs -r pre-commit run --files
         else
           echo "No pre-commit config found, skipping linting"
