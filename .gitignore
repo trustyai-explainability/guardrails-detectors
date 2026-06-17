@@ -8,6 +8,11 @@
 __pycache__/
 *.py[cod]
 
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
 # pyenv environment
 .python-version
 
@@ -19,9 +24,6 @@ __pycache__/
 
 # .tox
 .tox/
-
-# pycache
-__pycache__/
 
 # coverage
 .coverage
