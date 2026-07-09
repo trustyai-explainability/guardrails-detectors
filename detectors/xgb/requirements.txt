@@ -1,0 +1,7 @@
+xgboost
+torch==2.4.0
+pandas==2.2.2
+numpy==1.26.4
+datasets
+nltk==3.9.1
+scikit-learn
