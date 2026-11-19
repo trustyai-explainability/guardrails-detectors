@@ -48,6 +48,21 @@ Replace `$TAG` with your desired image tag (e.g., `my-detector:latest`).
 ## API
 See [IBM Detector API](https://foundation-model-stack.github.io/fms-guardrails-orchestrator/?urls.primaryName=Detector+API)
 
+The Hugging Face detector's `POST /api/v1/text/contents` contract is generated
+from its FastAPI application and committed at
+`api/openapi/huggingface.json`. To regenerate it:
+
+```sh
+python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu \
+  -r scripts/openapi-requirements.txt
+python scripts/generate_openapi.py
+python scripts/generate_openapi.py --check
+```
+
+Commit the regenerated document with API changes, and refresh
+`scripts/openapi-requirements.txt` when detector dependencies change. CI checks
+that the committed contract remains current.
+
 ## License
 
 This project is licensed under the Apache License Version 2.0 - see the [LICENSE](./LICENSE) file for details.

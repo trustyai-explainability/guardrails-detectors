@@ -1,0 +1,40 @@
+name: OpenAPI contract freshness
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'detectors/huggingface/**'
+      - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
+      - 'scripts/generate_openapi.py'
+      - 'scripts/openapi-requirements.txt'
+      - 'api/openapi/huggingface.json'
+      - '.github/workflows/openapi.yaml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'detectors/huggingface/**'
+      - 'detectors/common/**'
+      - 'detectors/pyproject.toml'
+      - 'scripts/generate_openapi.py'
+      - 'scripts/openapi-requirements.txt'
+      - 'api/openapi/huggingface.json'
+      - '.github/workflows/openapi.yaml'
+
+jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned OpenAPI generation dependencies
+        run: >-
+          python -m pip install --extra-index-url https://download.pytorch.org/whl/cpu
+          -r scripts/openapi-requirements.txt
+      - name: Check generated OpenAPI contract
+        run: python scripts/generate_openapi.py --check

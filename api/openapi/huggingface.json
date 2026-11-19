@@ -1,0 +1,239 @@
+{
+  "components": {
+    "schemas": {
+      "ContentAnalysisHttpRequest": {
+        "properties": {
+          "contents": {
+            "description": "Field allowing users to provide list of texts for analysis. Note, results of this endpoint will contain analysis / detection of each of the provided text in the order they are present in the contents object.",
+            "example": [
+              "Your email is test@ibm.com! Only the next instance of email will be processed. test@ibm.com. Your SSN is 123-45-6789."
+            ],
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Contents",
+            "type": "array"
+          },
+          "detector_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional detector parameters, used on a per-detector basis",
+            "title": "Detector Params"
+          }
+        },
+        "required": [
+          "contents",
+          "detector_params"
+        ],
+        "title": "ContentAnalysisHttpRequest",
+        "type": "object"
+      },
+      "ContentAnalysisResponse": {
+        "properties": {
+          "detection": {
+            "default": "detection",
+            "example": "Net.EmailAddress",
+            "title": "Detection",
+            "type": "string"
+          },
+          "detection_type": {
+            "example": "pii",
+            "title": "Detection Type",
+            "type": "string"
+          },
+          "end": {
+            "example": 26,
+            "title": "End",
+            "type": "integer"
+          },
+          "evidences": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/EvidenceObj"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional field providing evidences for the provided detection",
+            "title": "Evidences"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additional metadata from evaluation",
+            "title": "Metadata"
+          },
+          "score": {
+            "example": 0.8,
+            "title": "Score",
+            "type": "number"
+          },
+          "start": {
+            "example": 14,
+            "title": "Start",
+            "type": "integer"
+          },
+          "text": {
+            "example": "abc@def.com",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "text",
+          "detection_type",
+          "score"
+        ],
+        "title": "ContentAnalysisResponse",
+        "type": "object"
+      },
+      "ContentsAnalysisResponse": {
+        "items": {
+          "items": {
+            "$ref": "#/components/schemas/ContentAnalysisResponse"
+          },
+          "type": "array"
+        },
+        "title": "Response Text Content Analysis Unary Handler Api V1 Text Content Post",
+        "type": "array"
+      },
+      "Error": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "Error",
+        "type": "object"
+      },
+      "Evidence": {
+        "properties": {
+          "source": {
+            "description": "Source of the evidence, it can be url of the evidence etc",
+            "example": "https://en.wikipedia.org/wiki/IBM",
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "Evidence",
+        "type": "object"
+      },
+      "EvidenceObj": {
+        "properties": {
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence",
+            "description": "Evidence object, currently only containing source, but in future can contain other optional arguments like id, etc"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EvidenceType",
+            "description": "Type field signifying the type of evidence provided. Example url, title etc",
+            "example": "url"
+          }
+        },
+        "required": [
+          "type",
+          "evidence"
+        ],
+        "title": "EvidenceObj",
+        "type": "object"
+      },
+      "EvidenceType": {
+        "enum": [
+          "url",
+          "title"
+        ],
+        "title": "EvidenceType",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "title": "FastAPI",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/text/contents": {
+      "post": {
+        "description": "Detectors that work on content text, be it user prompt or generated text.                     Generally classification type detectors qualify for this. <br>",
+        "operationId": "detector_unary_handler_api_v1_text_contents_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentAnalysisHttpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentsAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Resource Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Detector Unary Handler"
+      }
+    }
+  }
+}
